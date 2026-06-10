@@ -1,10 +1,35 @@
+ご指摘の通り、スマートフォンの画面はPCと比べて横幅が狭く縦に長いため、これまでの「すべての情報を1つの画面に上から下まで並べる」設計では、**「目的の情報（例えば式進行や、参考画像）にたどり着くために、親指で何度も何度も下へスクロールしなければならない」**という実務上の大きな負担が生じていました。
+
+この使いにくさを劇的に改善するため、スマートフォン向けUIのベストプラクティスである 「タブ切り替え機能（Tabs）」 を詳細画面に導入しました。
+
+これにより、情報がすっきりと整理され、画面をほとんどスクロールすることなく、1タップで必要な情報へダイレクトにアクセスできる ようになります。
+
+1. スマホ特有の「縦長で見にくい」を解消する新デザイン
+
+詳細画面の上部に、押しやすい 4つの切り替えタブ を設置しました。
+
+1.  「基本・参考画像」タブ:
+      - 寺院名、宗派、住所、地図、電話、FAX、公式HP、参考画像（10枚）
+2.  「届け・送迎」タブ:
+      - 書き物届け（有り/無しと詳細）、送迎（有り/無しと詳細）、初七日法要、火葬場への同行
+3.  「式進行」タブ:
+      - 【通夜進行】（入場、開式の辞、焼香、法話、退場、全体の読経時間）
+      - 【告別式進行】（入場、開式の辞、引導、焼香、法話、退場、出棺先導、全体の読経時間）
+4.  「注意事項」タブ:
+      - お寺独自の重要な注意事項（広くて読みやすい専用のメモスペース）
+5.  「管理者に伝える」連絡エリア:
+      - タブの切り替えに関わらず、画面の最下部（または注意事項タブ内）に綺麗に配置し、LINEやメールでの報告をすぐに行えるようにしました。
+
+2. 劇的改善版：周辺寺院詳細アプリ（Ver. 19.0）
+
+以下のコードをコピーしてメモ帳に貼り付け、名前を index.html に変更して上書き保存（またはGitHubへアップロード）してください。
 
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>埼玉本社 周辺寺院詳細アプリ (Ver 18.0)</title>
+    <title>埼玉本社 周辺寺院詳細アプリ (Ver 19.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -14,7 +39,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans">
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
 
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col justify-between">
 
@@ -30,7 +55,7 @@
         </main>
 
         <footer id="app-footer" class="bg-gray-50 border-t p-3 text-center text-xs text-gray-500 hidden">
-            埼玉本社 周辺寺院詳細アプリ v18.0 (業務運用版)
+            埼玉本社 周辺寺院詳細アプリ v19.0 (業務運用版)
         </footer>
     </div>
 
@@ -139,6 +164,18 @@
 
         function saveStaffsToStorage() {
             localStorage.setItem('staffs', JSON.stringify(staffs));
+        }
+
+        function getFormattedNow() {
+            const days = ["日", "月", "火", "水", "木", "金", "土"];
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const day = days[now.getDay()];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}年${month}月${date}日 (${day}) ${hours}:${minutes}`;
         }
 
         let currentUser = null;
@@ -281,12 +318,6 @@
             `;
         }
 
-        function logout() {
-            currentUser = null;
-            currentUserRole = null;
-            showLoginScreen();
-        }
-
         // 検索絞り込み
         function filterTemples() {
             const query = document.getElementById('search-input').value.toLowerCase();
@@ -335,49 +366,50 @@
             container.innerHTML = html;
         }
 
-        // 3. 詳細画面
+        // 3. 詳細画面（★スマホの縦幅削減のため、タブUIに完全リニューアルしました）
         function showDetailScreen(id) {
             const t = temples.find(item => item.id === id);
             const body = document.getElementById('app-body');
             const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.address)}`;
 
+            // 有り・無しボタン作成関数
             const makeToggleButtons = (activeValue, btn1Label, btn2Label) => {
                 const btn1Active = activeValue === btn1Label;
-                const activeClass = "bg-emerald-700 text-white font-bold px-4 py-1.5 rounded-lg shadow text-xs";
-                const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-4 py-1.5 rounded-lg text-xs cursor-default";
+                const activeClass = "bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow text-[10px]";
+                const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-3 py-1 rounded text-[10px] cursor-default";
                 return `
-                    <div class="flex gap-2">
+                    <div class="flex gap-1.5">
                         <span class="${btn1Active ? activeClass : inactiveClass}">${btn1Label}</span>
                         <span class="${!btn1Active ? activeClass : inactiveClass}">${btn2Label}</span>
                     </div>
                 `;
             };
 
-            // 書き物詳細
+            // 書き物詳細テキスト
             let deliveryDetailsText = '';
             if (t.has_delivery === '有り') {
                 const itemsList = t.delivery_items && t.delivery_items.length > 0 ? t.delivery_items.join(', ') : 'なし';
                 const otherText = t.delivery_other ? ` (その他: ${t.delivery_other})` : '';
-                deliveryDetailsText = `<div class="text-emerald-900 font-semibold bg-emerald-50 border border-emerald-200 rounded p-2 mt-2">
-                    <span class="block text-xs font-bold text-emerald-800 mb-1">書き物詳細:</span>
+                deliveryDetailsText = `<div class="text-emerald-900 font-semibold bg-emerald-50 border border-emerald-200 rounded p-2 mt-1.5">
+                    <span class="block text-[10px] font-bold text-emerald-800 mb-0.5">書き物詳細:</span>
                     ${itemsList}${otherText}
                 </div>`;
             }
 
-            // 送迎詳細
+            // 送迎詳細ボタン
             let pickupDetailButtonsHTML = '';
             if (t.has_pickup === '有り') {
                 const options = ["ハイヤー", "タクシー", "どちらでも可", "不明", "その他"];
                 pickupDetailButtonsHTML = `
-                    <div class="flex flex-wrap gap-1.5 mt-2">
+                    <div class="flex flex-wrap gap-1 mt-1">
                         ${options.map(opt => {
                             const isSelected = t.pickup_details && t.pickup_details.includes(opt);
                             let label = opt;
                             if (opt === 'その他' && t.pickup_other) {
                                 label = `その他（${t.pickup_other}）`;
                             }
-                            const activeClass = "bg-emerald-700 text-white font-bold px-2.5 py-1 rounded shadow text-xs";
-                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2.5 py-1 rounded text-xs cursor-default";
+                            const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
                             return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
                         }).join('')}
                     </div>
@@ -385,68 +417,74 @@
             } else {
                 const options = ["自家用車", "電車その他", "その他"];
                 pickupDetailButtonsHTML = `
-                    <div class="flex flex-wrap gap-1.5 mt-2">
+                    <div class="flex flex-wrap gap-1 mt-1">
                         ${options.map(opt => {
                             const isSelected = (t.pickup_details && t.pickup_details.includes(opt)) || t.pickup_detail === opt;
                             let label = opt;
                             if (opt === 'その他' && t.pickup_other) {
                                 label = `その他（${t.pickup_other}）`;
                             }
-                            const activeClass = "bg-emerald-700 text-white font-bold px-2.5 py-1 rounded shadow text-xs";
-                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2.5 py-1 rounded text-xs cursor-default";
+                            const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
                             return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
                         }).join('')}
                     </div>
                 `;
             }
 
-            // 火葬同行
+            // 火葬同行ボタン
             const cre_options = ["有り", "無し", "不明", "その他"];
             const selectedCre = t.crematory_accompany || "不明";
             let creDetailButtonsHTML = `
-                <div class="flex flex-wrap gap-1.5 mt-1.5">
+                <div class="flex flex-wrap gap-1 mt-1">
                     ${cre_options.map(opt => {
                         const isSelected = selectedCre === opt;
                         let label = opt;
                         if (opt === 'その他' && t.crematory_accompany_other) {
                             label = `その他（${t.crematory_accompany_other}）`;
                         }
-                        const activeClass = "bg-emerald-700 text-white font-bold px-2.5 py-1 rounded shadow text-xs";
-                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2.5 py-1 rounded text-xs cursor-default";
+                        const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
                         return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
                     }).join('')}
                 </div>
             `;
 
-            // 出棺先導
+            // 出棺先導ボタン
             const sendo_options = ["有り", "無し", "不明"];
             const selectedSendo = t.kokubetsu_shukkan_sendo || "不明";
             let sendoDetailButtonsHTML = `
-                <div class="flex gap-1.5 mt-1.5">
+                <div class="flex gap-1 mt-1">
                     ${sendo_options.map(opt => {
                         const isSelected = selectedSendo === opt;
-                        const activeClass = "bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow text-xs";
-                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-3 py-1 rounded text-xs cursor-default";
+                        const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
                         return `<span class="${isSelected ? activeClass : inactiveClass}">${opt}</span>`;
                     }).join('')}
                 </div>
             `;
 
-            // 参考画像表示
+            // 参考画像スライド
             let imagesHTML = '';
             if (t.images && t.images.length > 0) {
                 imagesHTML = `
-                    <div class="border-t pt-4">
-                        <span class="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
+                    <div class="mt-3 bg-gray-50 p-2.5 rounded-lg border">
+                        <span class="block text-[10px] font-bold text-gray-500 mb-1.5 flex items-center gap-1">
                             <i class="fa-solid fa-image text-emerald-800"></i>参考画像 (${t.images.length}/10枚) ※タップで拡大
                         </span>
-                        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth snap-x">
+                        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth snap-x">
                             ${t.images.map(img => `
                                 <div class="flex-shrink-0 snap-start">
-                                    <img src="${img}" onclick="openImageModal('${img}')" class="w-24 h-24 object-cover rounded-lg border shadow-sm cursor-pointer hover:opacity-90 transition">
+                                    <img src="${img}" onclick="openImageModal('${img}')" class="w-16 h-16 object-cover rounded border shadow-sm cursor-pointer hover:opacity-90 transition">
                                 </div>
                             `).join('')}
                         </div>
+                    </div>
+                `;
+            } else {
+                imagesHTML = `
+                    <div class="mt-3 p-4 border border-dashed rounded-lg text-center text-gray-400 text-xs">
+                        登録されている参考画像はありません。
                     </div>
                 `;
             }
@@ -458,7 +496,7 @@
             let kokubetsuChantText = t.kokubetsu_chant_time ? `約 ${t.kokubetsu_chant_time} 分` : '情報なし';
 
             const deleteRequestBannerHTML = t.delete_requested ? `
-                <div class="bg-amber-100 border border-amber-300 rounded-lg p-3 text-xs text-amber-900 space-y-1">
+                <div class="bg-amber-100 border border-amber-300 rounded-lg p-3 text-xs text-amber-900 space-y-1 my-2">
                     <p class="font-bold flex items-center gap-1 text-amber-900">
                         <i class="fa-solid fa-circle-exclamation text-[13px]"></i>現在、この寺院は削除依頼が送信されています。
                     </p>
@@ -467,183 +505,211 @@
                 </div>
             ` : '';
 
+            // 画面の構築 (ヘッダー情報とタブバー、そして各タブコンテンツエリア)
             body.innerHTML = `
-                <button onclick="showListScreen()" class="mb-4 text-emerald-800 font-bold flex items-center gap-1 hover:underline text-sm">
+                <button onclick="showListScreen()" class="mb-3 text-emerald-800 font-bold flex items-center gap-1 hover:underline text-sm">
                     <i class="fa-solid fa-arrow-left"></i> 一覧に戻る
                 </button>
 
-                <div class="bg-white rounded-lg border shadow-sm p-4 space-y-4">
+                <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
                     
-                    <div>
-                        <div class="text-[10px] text-gray-400 font-bold flex items-center gap-1 mb-1">
+                    <!-- ① 常に上部に固定表示するお寺名と更新スタンプ -->
+                    <div class="p-4 bg-emerald-50 border-b">
+                        <div class="text-[9px] text-gray-400 font-bold flex items-center gap-1 mb-1">
                             <i class="fa-solid fa-clock"></i>
                             <span>最終更新: ${t.last_updated || '記録なし'}</span>
                         </div>
-
-                        <span class="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-bold">${t.sect} (${t.sect_kana})</span>
-                        <h2 class="text-2xl font-bold text-gray-800 mt-2">
+                        <span class="text-[9px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-bold">${t.sect} (${t.sect_kana})</span>
+                        <h2 class="text-xl font-bold text-gray-800 mt-1">
                             <ruby>${t.name}<rt>${t.kana}</rt></ruby>
                         </h2>
                     </div>
 
                     ${deleteRequestBannerHTML}
-                    ${imagesHTML}
 
-                    <!-- 住所・連絡先 & 「地図」ボタン -->
-                    <div class="border-t border-b py-3 text-xs space-y-2">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="block text-[10px] text-gray-400 font-bold">住所</span>
-                                <span class="text-gray-700">〒${t.postal_code} <br>${t.address}</span>
-                            </div>
-                            <a href="${mapUrl}" target="_blank" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-2 rounded font-bold hover:bg-blue-100 transition flex items-center gap-1 whitespace-nowrap">
-                                <i class="fa-solid fa-map-location-dot"></i>地図を開く
-                            </a>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <span class="block text-[10px] text-gray-400 font-bold">電話番号</span>
-                                <span class="text-gray-800 font-semibold">${t.phone}</span>
-                            </div>
-                            <div>
-                                <span class="block text-[10px] text-gray-400 font-bold">FAX番号</span>
-                                <span class="text-gray-800 font-semibold">${t.fax}</span>
-                            </div>
-                        </div>
+                    <!-- ② ★スマートフォンの縦幅を節約する「タブ選択バー」 -->
+                    <div class="flex border-b text-[11px] font-bold text-gray-400 bg-gray-50 select-none">
+                        <button onclick="switchTab('basic')" id="btn-tab-basic" class="flex-1 py-3 text-center border-b-2 border-emerald-700 text-emerald-800 transition">基本・画像</button>
+                        <button onclick="switchTab('delivery')" id="btn-tab-delivery" class="flex-1 py-3 text-center border-b-2 border-transparent transition">届け・送迎</button>
+                        <button onclick="switchTab('ceremony')" id="btn-tab-ceremony" class="flex-1 py-3 text-center border-b-2 border-transparent transition">式進行</button>
+                        <button onclick="switchTab('notes')" id="btn-tab-notes" class="flex-1 py-3 text-center border-b-2 border-transparent transition">注意事項</button>
                     </div>
 
-                    <!-- 実務・届け物・送迎情報 -->
-                    <div class="bg-gray-50 border rounded-lg p-3 space-y-3 text-xs shadow-inner">
+                    <!-- ③ 各タブの中身 (hiddenで出し分け) -->
+                    <div class="p-4 space-y-4">
                         
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <span class="font-bold text-gray-600">公式ホームページ</span>
-                            ${makeToggleButtons(t.has_website || '無し', '有り', '無し')}
+                        <!-- タブA: 基本情報・参考画像 -->
+                        <div id="tab-content-basic" class="space-y-3">
+                            <div class="text-xs space-y-2">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="block text-[9px] text-gray-400 font-bold">住所</span>
+                                        <span class="text-gray-700 font-medium">〒${t.postal_code} <br>${t.address}</span>
+                                    </div>
+                                    <a href="${mapUrl}" target="_blank" class="bg-blue-50 text-blue-600 border border-blue-200 px-2.5 py-1.5 rounded font-bold hover:bg-blue-100 transition flex items-center gap-1 text-[10px] whitespace-nowrap shadow-sm">
+                                        <i class="fa-solid fa-map-location-dot"></i>地図
+                                    </a>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 border-t pt-2">
+                                    <div>
+                                        <span class="block text-[9px] text-gray-400 font-bold">電話番号</span>
+                                        <span class="text-gray-800 font-bold text-sm">${t.phone}</span>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[9px] text-gray-400 font-bold">FAX番号</span>
+                                        <span class="text-gray-800 font-bold text-sm">${t.fax}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 参考画像表示 -->
+                            ${imagesHTML}
                         </div>
 
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <span class="font-bold text-gray-600">書き物届け</span>
-                            ${makeToggleButtons(t.has_delivery, '有り', '無し')}
-                        </div>
-                        ${deliveryDetailsText}
+                        <!-- タブB: 届け・送迎 -->
+                        <div id="tab-content-delivery" class="space-y-3 hidden">
+                            <div class="bg-gray-50 border rounded-lg p-3 space-y-3 text-xs shadow-inner">
+                                <div class="flex justify-between items-center border-b pb-1.5">
+                                    <span class="font-bold text-gray-600">書き物届け</span>
+                                    ${makeToggleButtons(t.has_delivery, '有り', '無し')}
+                                </div>
+                                ${deliveryDetailsText}
 
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <span class="font-bold text-gray-600">送迎の有無</span>
-                            ${makeToggleButtons(t.has_pickup, '有り', '無し')}
-                        </div>
-                        
-                        <div>
-                            <span class="text-[10px] text-gray-400 block font-semibold mb-1">送迎詳細 (複数選択可)</span>
-                            ${pickupDetailButtonsHTML}
+                                <div class="flex justify-between items-center border-b pb-1.5">
+                                    <span class="font-bold text-gray-600">送迎の有無</span>
+                                    ${makeToggleButtons(t.has_pickup, '有り', '無し')}
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-gray-400 block font-semibold mb-0.5">送迎詳細</span>
+                                    ${pickupDetailButtonsHTML}
+                                </div>
+
+                                <div class="border-t pt-2 flex justify-between items-center">
+                                    <span class="font-bold text-gray-600">初七日法要</span>
+                                    <span class="font-bold text-gray-800 text-right">${t.first_seven_days === 'その他' ? t.first_seven_other : t.first_seven_days}</span>
+                                </div>
+
+                                <div class="border-t pt-2">
+                                    <span class="text-[10px] text-gray-400 block font-semibold mb-1">火葬場への同行</span>
+                                    ${creDetailButtonsHTML}
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="border-t pt-2">
-                            <span class="text-[10px] text-gray-400 block">初初七日法要</span>
-                            <span class="font-bold text-sm text-gray-800">${t.first_seven_days === 'その他' ? t.first_seven_days + '（' + t.first_seven_other + '）' : t.first_seven_days}</span>
+                        <!-- タブC: 式進行 -->
+                        <div id="tab-content-ceremony" class="space-y-3 hidden">
+                            <!-- 通夜進行 -->
+                            <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs shadow-inner">
+                                <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
+                                    <span>【通夜の進行】</span>
+                                    <i class="fa-solid fa-moon"></i>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? t.tsuya_entry_other : t.tsuya_entry}</span></p>
+                                <div class="border-b py-1">
+                                    <span class="text-gray-400 block">開式の辞:</span>
+                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.tsuya_opening}</span>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_shoko || '情報なし'}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">法話:</span><span class="col-span-2 font-semibold text-gray-800">${tsuyaHowaText}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">退場:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_exit === 'その他' ? t.tsuya_exit_other : t.tsuya_exit}</span></p>
+                                <p class="grid grid-cols-3 py-1 font-bold"><span class="text-gray-500">読経時間:</span><span class="col-span-2 text-emerald-800">${tsuyaChantText}</span></p>
+                            </div>
+
+                            <!-- 告別式進行 -->
+                            <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs shadow-inner">
+                                <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
+                                    <span>【告別式の進行】</span>
+                                    <i class="fa-solid fa-sun"></i>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_entry === 'その他' ? t.kokubetsu_entry_other : t.kokubetsu_entry}</span></p>
+                                <div class="border-b py-1">
+                                    <span class="text-gray-400 block">開式の辞:</span>
+                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.kokubetsu_opening}</span>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">引導:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_indo || '情報なし'}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_shoko || '情報なし'}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">法話:</span><span class="col-span-2 font-semibold text-gray-800">${kokubetsuHowaText}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">退場:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_exit === 'その他' ? t.kokubetsu_exit_other : t.kokubetsu_exit}</span></p>
+                                <div class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">出棺先導:</span><div class="col-span-2">${sendoDetailButtonsHTML}</div></div>
+                                <p class="grid grid-cols-3 py-1 font-bold"><span class="text-gray-500">読経時間:</span><span class="col-span-2 text-emerald-800">${kokubetsuChantText}</span></p>
+                            </div>
                         </div>
 
-                        <div class="border-t pt-2">
-                            <span class="text-[10px] text-gray-400 block font-semibold">火葬場への同行 (無い方はグレー)</span>
-                            ${creDetailButtonsHTML}
+                        <!-- タブD: 注意事項 -->
+                        <div id="tab-content-notes" class="space-y-3 hidden">
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs min-h-[150px] shadow-inner">
+                                <span class="block text-[10px] text-amber-800 font-bold mb-1"><i class="fa-solid fa-circle-exclamation mr-1"></i>注意事項</span>
+                                <p class="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm font-semibold">${t.notes || '注意事項は登録されていません'}</p>
+                            </div>
                         </div>
+
                     </div>
 
-                    <!-- 注意事項 -->
-                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
-                        <span class="block text-[10px] text-amber-800 font-bold mb-1"><i class="fa-solid fa-circle-exclamation mr-1"></i>注意事項</span>
-                        <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">${t.notes || '特になし'}</p>
-                    </div>
-
-                    <!-- 式進行情報 -->
-                    <div class="space-y-3">
-                        <h3 class="font-bold text-gray-700 text-sm border-l-4 border-emerald-700 pl-2">式進行情報</h3>
-                        
-                        <!-- 通夜進行 -->
-                        <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs">
-                            <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
-                                <span>【通夜の進行】</span>
-                                <i class="fa-solid fa-moon"></i>
-                            </div>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? 'other（' + t.tsuya_entry_other + '）' : t.tsuya_entry}</span></p>
-                            <div class="border-b py-1">
-                                <span class="text-gray-400 block">開式の辞:</span>
-                                <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.tsuya_opening}</span>
-                            </div>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_shoko}</span></p>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">法話:</span><span class="col-span-2 font-semibold text-gray-800">${tsuyaHowaText}</span></p>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">退場:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_exit === 'その他' ? 'その他（' + t.tsuya_exit_other + '）' : t.tsuya_exit}</span></p>
-                            <p class="grid grid-cols-3 py-1 font-bold"><span class="text-gray-500">全体の読経時間:</span><span class="col-span-2 text-emerald-800">${tsuyaChantText}</span></p>
+                    <!-- ④【管理者に伝える】ボタンエリア (タブの切り替えに関わらず最下部に配置して押しやすく) -->
+                    <div class="p-4 border-t bg-gray-50 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-[10px] text-blue-900 flex items-center gap-1"><i class="fa-solid fa-paper-plane"></i>この情報を管理者に伝える</span>
+                            <span class="text-[9px] text-gray-400">※全員に情報を自動同期するため</span>
                         </div>
-
-                        <!-- 告別式進行 -->
-                        <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs">
-                            <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
-                                <span>【告別式の進行】</span>
-                                <i class="fa-solid fa-sun"></i>
-                            </div>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_entry === 'その他' ? 'その他（' + t.kokubetsu_entry_other + '）' : t.kokubetsu_entry}</span></p>
-                            <div class="border-b py-1">
-                                <span class="text-gray-400 block">開式の辞:</span>
-                                <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.kokubetsu_opening}</span>
-                            </div>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">引導:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_indo}</span></p>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_shoko}</span></p>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">法話:</span><span class="col-span-2 font-semibold text-gray-800">${kokubetsuHowaText}</span></p>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">退場:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_exit === 'その他' ? 'その他（' + t.kokubetsu_exit_other + '）' : t.kokubetsu_exit}</span></p>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">出棺先導 (無い方はグレー):</span><span class="col-span-2 font-semibold text-gray-800">${sendoDetailButtonsHTML}</span></p>
-                            <p class="grid grid-cols-3 py-1 font-bold"><span class="text-gray-500">全体の読経時間:</span><span class="col-span-2 text-emerald-800">${kokubetsuChantText}</span></p>
-                        </div>
-                    </div>
-
-                    <!-- ★【管理者に伝える】ボタンエリア (新規追加) -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs space-y-2">
-                        <p class="font-bold text-blue-900 flex items-center gap-1">
-                            <i class="fa-solid fa-paper-plane"></i>この情報を管理者に伝える
-                        </p>
-                        <p class="text-gray-500 text-[10px]">
-                            ※他のスタッフのスマホにこの内容を同期するため、修正・新規登録したテキストをLINEやメールで管理者に送信してください。
-                        </p>
                         <div class="flex gap-2">
-                            <!-- LINEで送信 -->
-                            <button onclick="shareViaLine(${t.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-2 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
-                                <i class="fa-brands fa-line text-sm"></i>LINEで送る
+                            <button onclick="shareViaLine(${t.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-1 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-brands fa-line text-sm"></i>LINE
                             </button>
-                            <!-- メールで送信 -->
-                            <button onclick="shareViaEmail(${t.id})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
-                                <i class="fa-solid fa-envelope text-sm"></i>メールで送る
+                            <button onclick="shareViaEmail(${t.id})" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-1 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-solid fa-envelope text-sm"></i>メール
                             </button>
-                            <!-- コピーする -->
-                            <button onclick="copyToClipboard(${t.id})" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-2 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
-                                <i class="fa-solid fa-copy text-sm"></i>文面をコピー
+                            <button onclick="copyToClipboard(${t.id})" class="flex-grow bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-1 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-solid fa-copy text-sm"></i>コピー
                             </button>
                         </div>
                     </div>
 
-                    <!-- ★公式HP ＆ 電話ボタン -->
-                    <div class="flex gap-3 pt-2">
-                        ${t.has_website === '有り' && t.website_url ? `
-                            <a href="${t.website_url}" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold text-center shadow transition flex items-center justify-center gap-2 text-xs">
-                                <i class="fa-solid fa-globe"></i>公式ホームページ
+                    <!-- ⑤ ボタン関係 (公式HP、電話、編集) -->
+                    <div class="p-4 bg-white border-t space-y-3">
+                        <div class="flex gap-3">
+                            ${t.has_website === '有り' && t.website_url ? `
+                                <a href="${t.website_url}" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold text-center shadow transition flex items-center justify-center gap-2 text-xs">
+                                    <i class="fa-solid fa-globe"></i>公式ホームページ
+                                </a>
+                            ` : `
+                                <button disabled class="flex-1 bg-gray-200 text-gray-400 p-3 rounded-lg font-bold text-center cursor-not-allowed flex items-center justify-center gap-2 text-xs">
+                                    <i class="fa-solid fa-globe-slash"></i>公式HPなし
+                                </button>
+                            `}
+                            <a href="tel:${t.phone}" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white p-3 rounded-lg font-bold text-center shadow transition flex items-center justify-center gap-2 text-xs">
+                                <i class="fa-solid fa-phone"></i>お寺へ電話
                             </a>
-                        ` : `
-                            <button disabled class="flex-1 bg-gray-200 text-gray-400 p-3 rounded-lg font-bold text-center cursor-not-allowed flex items-center justify-center gap-2 text-xs">
-                                <i class="fa-solid fa-globe-slash"></i>公式HPなし
-                            </button>
-                        `}
-                        <a href="tel:${t.phone}" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white p-3 rounded-lg font-bold text-center shadow transition flex items-center justify-center gap-2 text-xs">
-                            <i class="fa-solid fa-phone"></i>お寺へ電話する
-                        </a>
-                    </div>
+                        </div>
 
-                    <div class="pt-2 border-t">
                         <button onclick="showEditScreen(${t.id})" class="w-full bg-white hover:bg-gray-50 text-gray-500 border p-2 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-1">
-                            <i class="fa-solid fa-pen-to-square"></i>このお寺の情報を更新する
+                            <i class="fa-solid fa-pen-to-square"></i>お寺の情報を更新・編集する
                         </button>
                     </div>
+
                 </div>
             `;
         }
 
-        // --- ★「管理者に伝える」メッセージのテキスト自動生成ロジック ---
+        // --- ★タブ切り替え用のJavascriptロジック（新規追加） ---
+        function switchTab(tabId) {
+            const tabs = ['basic', 'delivery', 'ceremony', 'notes'];
+            
+            // すべてのコンテンツを非表示に
+            tabs.forEach(t => {
+                document.getElementById(`tab-content-${t}`).classList.add('hidden');
+                
+                // ボタンの境界線と文字色をリセット
+                const btn = document.getElementById(`btn-tab-${t}`);
+                btn.className = "flex-1 py-3 text-center border-b-2 border-transparent transition";
+            });
+
+            // 選択されたタブのみを表示・強調
+            document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-tab-${tabId}`);
+            activeBtn.className = "flex-1 py-3 text-center border-b-2 border-emerald-700 text-emerald-800 font-bold transition";
+        }
+
+        // --- 「管理者に伝える」メッセージのテキスト自動生成ロジック ---
         function generateShareText(t) {
             let text = `【周辺寺院アプリ 修正・登録情報】\n`;
             text += `■ 寺院名: ${t.name} (${t.kana})\n`;
@@ -680,35 +746,28 @@
             return text;
         }
 
-        // LINEで送信する処理
         function shareViaLine(id) {
             const t = temples.find(item => item.id === id);
             const msg = generateShareText(t);
-            // LINE共有用URL
             const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(msg)}`;
             window.open(lineUrl, '_blank');
         }
 
-        // メールで送信する処理
         function shareViaEmail(id) {
             const t = temples.find(item => item.id === id);
             const msg = generateShareText(t);
-            // 件名と本文をエンコード
             const subject = encodeURIComponent(`【寺院情報更新】${t.name}`);
             const body = encodeURIComponent(msg);
             const mailUrl = `mailto:?subject=${subject}&body=${body}`;
             window.location.href = mailUrl;
         }
 
-        // 文面をクリップボードにコピーする処理
         function copyToClipboard(id) {
             const t = temples.find(item => item.id === id);
             const msg = generateShareText(t);
-
-            // ローカルHTML、Web（SSL）環境のどちらでも確実にコピーできるハイブリッド処理
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(msg).then(() => {
-                    alert('お寺の最新情報をクリップボードにコピーしました！\nLINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
+                    alert('コピー完了しました！LINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
                 }).catch(err => {
                     console.error('Clipboard error:', err);
                     fallbackCopyText(msg);
@@ -718,17 +777,16 @@
             }
         }
 
-        // コピー機能の予備（古いブラウザやローカルfile://用）
         function fallbackCopyText(text) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
-            textArea.style.position = "fixed";  // 画面外に配置
+            textArea.style.position = "fixed";
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
             try {
                 document.execCommand('copy');
-                alert('お寺の最新情報をクリップボードにコピーしました！\nLINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
+                alert('コピー完了しました！LINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
             } catch (err) {
                 alert('自動コピーに失敗しました。お手数ですが、テキストを選択してコピーしてください。');
             }
@@ -912,7 +970,7 @@
                                     <button type="button" id="btn-web-no" onclick="setEditWebHas('無し')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
                                 </div>
                                 <div id="web-url-input-area" class="hidden pt-1">
-                                    <label class="block text-gray-500 font-semibold mb-0.5">公式HP of URL</label>
+                                    <label class="block text-gray-500 font-semibold mb-0.5">公式HPのURL</label>
                                     <input type="text" id="edit-url" class="w-full p-2 border rounded bg-white" value="${t.website_url}" placeholder="https://example.com">
                                 </div>
                             </div>
@@ -1091,6 +1149,7 @@
                         <div class="border p-3 rounded-lg bg-slate-50 space-y-3">
                             <h4 class="font-bold text-emerald-800 border-b pb-1">告別式の進行</h4>
                             
+                            <!-- 告別式：入場時 -->
                             <div>
                                 <label class="block font-bold text-gray-600 mb-1">入場時</label>
                                 <select id="edit-kokubetsu-entry" onchange="toggleKokuEntryOther()" class="w-full p-2 border rounded bg-white">
@@ -1695,7 +1754,7 @@
                     kokubetsu_opening, kokubetsu_indo, kokubetsu_shoko, 
                     kokubetsu_howa: edit_kokubetsu_howa,
                     kokubetsu_howa_time: edit_kokubetsu_howa === '有り' ? kokubetsu_howa_time : '',
-                    kokubetsu_exit, kokubetsu_exit_other: kokubetsu_exit === 'その他' ? kokubetsu_exit_other : '',
+                    kokubetsu_exit, kokubetsu_exit_other: kokubetsu_exit === 'strong' ? kokubetsu_exit_other : '',
                     kokubetsu_shukkan_sendo: edit_kokubetsu_shukkan_sendo,
                     kokubetsu_chant_time,
                     last_updated: timestamp,
@@ -1895,3 +1954,10 @@
     </script>
 </body>
 </html>
+
+3. デモでのご確認・動作テスト方法
+
+1.  上記のコードをコピーし、メモ帳を起動して貼り付け、名前を index.html にして上書き保存（またはGitHubへアップロード）してください。
+2.  お寺一覧からお好きなお寺（例：観音寺）をタップして詳細画面を開きます。
+3.  詳細画面の上部に 「基本・画像」「届け・送迎」「式進行」「注意事項」 の4つのタブ（横並びのボタン）が出現します。
+4.  それぞれのタブをタップすると、画面が切り替わります。スクロール量が大幅に削減され、画面を上下に何度も往復することなく目的の情報（式進行や画像など）にすぐアクセスできることをお確かめください。
