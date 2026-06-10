@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>埼玉本社 周辺寺院詳細アプリ (Ver 16.0)</title>
+    <title>埼玉本社 周辺寺院詳細アプリ (Ver 18.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -30,7 +30,7 @@
         </main>
 
         <footer id="app-footer" class="bg-gray-50 border-t p-3 text-center text-xs text-gray-500 hidden">
-            埼玉本社 周辺寺院詳細アプリ v16.0 (業務運用版)
+            埼玉本社 周辺寺院詳細アプリ v18.0 (業務運用版)
         </footer>
     </div>
 
@@ -73,7 +73,7 @@
             { name: "その他新興宗教系", kana: "ソノタシンコウシュウキョウケイ", has_sub: true, placeholder: "新興宗教系の詳細" }
         ];
 
-        // 初期データ (告別式の入場時デフォルトを着席合掌へ変更)
+        // 初期お寺データ
         const defaultTemples = [
             {
                 id: 1,
@@ -105,7 +105,6 @@
 
                 notes: "・駐車場が狭いため、大型の葬儀の際は乗り合わせを優先的に案内してください。\n・控室のエアコンの効きが悪いので、事前に入れておくこと。\n・お布施袋は黄白の水引、表書きは「御布施」を指定されています。",
 
-                // 式進行：通夜
                 tsuya_entry: "着席合掌", tsuya_entry_other: "",
                 tsuya_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
                 tsuya_shoko: "10分程、木魚から",
@@ -114,7 +113,6 @@
                 tsuya_exit: "着席合掌", tsuya_exit_other: "",
                 tsuya_chant_time: "30",
 
-                // 式進行：告別式 (入場時の「合掌」を「着席合掌」に修正)
                 kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
                 kokubetsu_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
                 kokubetsu_indo: "10分程　立って作法",
@@ -143,18 +141,6 @@
             localStorage.setItem('staffs', JSON.stringify(staffs));
         }
 
-        function getFormattedNow() {
-            const days = ["日", "月", "火", "水", "木", "金", "土"];
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
-            const date = now.getDate();
-            const day = days[now.getDay()];
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            return `${year}年${month}月${date}日 (${day}) ${hours}:${minutes}`;
-        }
-
         let currentUser = null;
         let currentUserRole = null;
         let tempImages = [];
@@ -168,17 +154,24 @@
             document.getElementById('login-status').classList.add('hidden');
             document.getElementById('app-footer').classList.add('hidden');
             const body = document.getElementById('app-body');
+            const savedId = localStorage.getItem('saved_login_id') || "";
+            const savedPw = localStorage.getItem('saved_login_pw') || "";
+
             body.innerHTML = `
                 <div class="py-8">
                     <h2 class="text-xl font-bold text-center text-gray-700 mb-6">周辺寺院詳細アプリ ログイン</h2>
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">ログインID</label>
-                            <input type="text" id="login-id" class="w-full p-3 border rounded focus:outline-emerald-600 font-mono text-sm bg-white" placeholder="saitama-〇〇">
+                            <input type="text" id="login-id" class="w-full p-3 border rounded focus:outline-emerald-600 font-mono text-sm bg-white" placeholder="saitama-〇〇" value="${savedId}">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">パスワード</label>
-                            <input type="password" id="login-pw" class="w-full p-3 border rounded focus:outline-emerald-600 font-mono text-sm bg-white" placeholder="••••••••">
+                            <input type="password" id="login-pw" class="w-full p-3 border rounded focus:outline-emerald-600 font-mono text-sm bg-white" placeholder="••••••••" value="${savedPw}">
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[10px] text-gray-400 pl-1">
+                            <i class="fa-solid fa-square-check text-emerald-700"></i>
+                            <span>ログインに成功すると、次回から自動入力されます。</span>
                         </div>
                         <button onclick="handleLogin()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white p-3 rounded-lg font-bold transition shadow-md">
                             ログインする
@@ -198,6 +191,8 @@
             if (id === 'saitama-arikawa' && pw === 'cosmic20') {
                 currentUser = id;
                 currentUserRole = 'admin';
+                localStorage.setItem('saved_login_id', id);
+                localStorage.setItem('saved_login_pw', pw);
                 document.getElementById('login-status').innerText = `管理者(arikawa)`;
                 document.getElementById('login-status').classList.remove('hidden');
                 document.getElementById('app-footer').classList.remove('hidden');
@@ -207,6 +202,8 @@
             if (staffs.includes(id) && pw === 'sakado0470') {
                 currentUser = id;
                 currentUserRole = 'staff';
+                localStorage.setItem('saved_login_id', id);
+                localStorage.setItem('saved_login_pw', pw);
                 document.getElementById('login-status').innerText = id;
                 document.getElementById('login-status').classList.remove('hidden');
                 document.getElementById('app-footer').classList.remove('hidden');
@@ -540,7 +537,7 @@
                         </div>
 
                         <div class="border-t pt-2">
-                            <span class="text-[10px] text-gray-400 block">初七日法要</span>
+                            <span class="text-[10px] text-gray-400 block">初初七日法要</span>
                             <span class="font-bold text-sm text-gray-800">${t.first_seven_days === 'その他' ? t.first_seven_days + '（' + t.first_seven_other + '）' : t.first_seven_days}</span>
                         </div>
 
@@ -566,7 +563,7 @@
                                 <span>【通夜の進行】</span>
                                 <i class="fa-solid fa-moon"></i>
                             </div>
-                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? 'その他（' + t.tsuya_entry_other + '）' : t.tsuya_entry}</span></p>
+                            <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? 'other（' + t.tsuya_entry_other + '）' : t.tsuya_entry}</span></p>
                             <div class="border-b py-1">
                                 <span class="text-gray-400 block">開式の辞:</span>
                                 <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.tsuya_opening}</span>
@@ -597,8 +594,32 @@
                         </div>
                     </div>
 
+                    <!-- ★【管理者に伝える】ボタンエリア (新規追加) -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs space-y-2">
+                        <p class="font-bold text-blue-900 flex items-center gap-1">
+                            <i class="fa-solid fa-paper-plane"></i>この情報を管理者に伝える
+                        </p>
+                        <p class="text-gray-500 text-[10px]">
+                            ※他のスタッフのスマホにこの内容を同期するため、修正・新規登録したテキストをLINEやメールで管理者に送信してください。
+                        </p>
+                        <div class="flex gap-2">
+                            <!-- LINEで送信 -->
+                            <button onclick="shareViaLine(${t.id})" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-2 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-brands fa-line text-sm"></i>LINEで送る
+                            </button>
+                            <!-- メールで送信 -->
+                            <button onclick="shareViaEmail(${t.id})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-solid fa-envelope text-sm"></i>メールで送る
+                            </button>
+                            <!-- コピーする -->
+                            <button onclick="copyToClipboard(${t.id})" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-2 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-solid fa-copy text-sm"></i>文面をコピー
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- ★公式HP ＆ 電話ボタン -->
-                    <div class="flex gap-3 pt-4 border-t">
+                    <div class="flex gap-3 pt-2">
                         ${t.has_website === '有り' && t.website_url ? `
                             <a href="${t.website_url}" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold text-center shadow transition flex items-center justify-center gap-2 text-xs">
                                 <i class="fa-solid fa-globe"></i>公式ホームページ
@@ -613,7 +634,7 @@
                         </a>
                     </div>
 
-                    <div class="pt-2">
+                    <div class="pt-2 border-t">
                         <button onclick="showEditScreen(${t.id})" class="w-full bg-white hover:bg-gray-50 text-gray-500 border p-2 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-1">
                             <i class="fa-solid fa-pen-to-square"></i>このお寺の情報を更新する
                         </button>
@@ -622,7 +643,99 @@
             `;
         }
 
-        // 4. 登録・編集共通
+        // --- ★「管理者に伝える」メッセージのテキスト自動生成ロジック ---
+        function generateShareText(t) {
+            let text = `【周辺寺院アプリ 修正・登録情報】\n`;
+            text += `■ 寺院名: ${t.name} (${t.kana})\n`;
+            text += `■ 宗派: ${t.sect} (${t.sect_kana})\n`;
+            text += `■ 住所: 〒${t.postal_code} ${t.address}\n`;
+            text += `■ 電話: ${t.phone} / FAX: ${t.fax}\n`;
+            text += `■ 公式ホームページ: ${t.has_website === '有り' ? t.website_url : '無し'}\n`;
+            text += `■ 書き物届け: ${t.has_delivery === '有り' ? t.delivery_items.join(', ') + ' / ' + t.delivery_other : '無し'}\n`;
+            text += `■ お迎え送迎: ${t.has_pickup === '有り' ? '有り（' + t.pickup_details.join(', ') + '）' : '無し（' + t.pickup_details.join(', ') + '）'}\n`;
+            if (t.pickup_other) text += `  (送迎その他: ${t.pickup_other})\n`;
+            text += `■ 初七日法要: ${t.first_seven_days === 'その他' ? t.first_seven_other : t.first_seven_days}\n`;
+            text += `■ 火葬場への同行: ${t.crematory_accompany === 'その他' ? t.crematory_accompany_other : t.crematory_accompany}\n`;
+            text += `■ 注意事項: ${t.notes || 'なし'}\n\n`;
+            
+            text += `【通夜の進行】\n`;
+            text += `・入場時: ${t.tsuya_entry === 'その他' ? t.tsuya_entry_other : t.tsuya_entry}\n`;
+            text += `・開式の辞: ${t.tsuya_opening}\n`;
+            text += `・焼香: ${t.tsuya_shoko || '情報なし'}\n`;
+            text += `・法話: ${t.tsuya_howa === '有り' ? t.tsuya_howa_time : '無し'}\n`;
+            text += `・退場: ${t.tsuya_exit === 'その他' ? t.tsuya_exit_other : t.tsuya_exit}\n`;
+            text += `・全体の読経時間: ${t.tsuya_chant_time ? '約 ' + t.tsuya_chant_time + ' 分' : '情報なし'}\n\n`;
+            
+            text += `【告別式の進行】\n`;
+            text += `・入場時: ${t.kokubetsu_entry === 'その他' ? t.kokubetsu_entry_other : t.kokubetsu_entry}\n`;
+            text += `・開式の辞: ${t.kokubetsu_opening}\n`;
+            text += `・引導: ${t.kokubetsu_indo || '情報なし'}\n`;
+            text += `・焼香: ${t.kokubetsu_shoko || '情報なし'}\n`;
+            text += `・法話: ${t.kokubetsu_howa === '有り' ? t.kokubetsu_howa_time : '無し'}\n`;
+            text += `・退場: ${t.kokubetsu_exit === 'その他' ? t.kokubetsu_exit_other : t.kokubetsu_exit}\n`;
+            text += `・出棺先導: ${t.kokubetsu_shukkan_sendo || '不明'}\n`;
+            text += `・全体の読経時間: ${t.kokubetsu_chant_time ? '約 ' + t.kokubetsu_chant_time + ' 分' : '情報なし'}\n\n`;
+            
+            text += `最終更新日時: ${t.last_updated} (更新スタッフ: ${currentUser || '不明'})`;
+            return text;
+        }
+
+        // LINEで送信する処理
+        function shareViaLine(id) {
+            const t = temples.find(item => item.id === id);
+            const msg = generateShareText(t);
+            // LINE共有用URL
+            const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(msg)}`;
+            window.open(lineUrl, '_blank');
+        }
+
+        // メールで送信する処理
+        function shareViaEmail(id) {
+            const t = temples.find(item => item.id === id);
+            const msg = generateShareText(t);
+            // 件名と本文をエンコード
+            const subject = encodeURIComponent(`【寺院情報更新】${t.name}`);
+            const body = encodeURIComponent(msg);
+            const mailUrl = `mailto:?subject=${subject}&body=${body}`;
+            window.location.href = mailUrl;
+        }
+
+        // 文面をクリップボードにコピーする処理
+        function copyToClipboard(id) {
+            const t = temples.find(item => item.id === id);
+            const msg = generateShareText(t);
+
+            // ローカルHTML、Web（SSL）環境のどちらでも確実にコピーできるハイブリッド処理
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(msg).then(() => {
+                    alert('お寺の最新情報をクリップボードにコピーしました！\nLINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
+                }).catch(err => {
+                    console.error('Clipboard error:', err);
+                    fallbackCopyText(msg);
+                });
+            } else {
+                fallbackCopyText(msg);
+            }
+        }
+
+        // コピー機能の予備（古いブラウザやローカルfile://用）
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";  // 画面外に配置
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('お寺の最新情報をクリップボードにコピーしました！\nLINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
+            } catch (err) {
+                alert('自動コピーに失敗しました。お手数ですが、テキストを選択してコピーしてください。');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // 4. 登録・編集
         let edit_has_pickup = "";
         let edit_pickup_details = [];
         let isEditMode = false;
@@ -667,7 +780,7 @@
                     tsuya_opening: "〇〇家菩提寺　〇〇寺　ご住職導師のもとに　執り行います",
                     tsuya_shoko: "", tsuya_howa: "無し", tsuya_howa_time: "", tsuya_exit: "着席合掌", tsuya_exit_other: "",
                     tsuya_chant_time: "",
-                    kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "", // 着席合掌にアップデート
+                    kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
                     kokubetsu_opening: "〇〇家菩提寺　〇〇寺　ご住職導師のもとに　執り行います",
                     kokubetsu_indo: "", kokubetsu_shoko: "", kokubetsu_howa: "無し", kokubetsu_howa_time: "", kokubetsu_exit: "起立合掌", kokubetsu_exit_other: "",
                     kokubetsu_shukkan_sendo: "不明",
@@ -799,7 +912,7 @@
                                     <button type="button" id="btn-web-no" onclick="setEditWebHas('無し')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
                                 </div>
                                 <div id="web-url-input-area" class="hidden pt-1">
-                                    <label class="block text-gray-500 font-semibold mb-0.5">公式HPのURL</label>
+                                    <label class="block text-gray-500 font-semibold mb-0.5">公式HP of URL</label>
                                     <input type="text" id="edit-url" class="w-full p-2 border rounded bg-white" value="${t.website_url}" placeholder="https://example.com">
                                 </div>
                             </div>
@@ -978,7 +1091,6 @@
                         <div class="border p-3 rounded-lg bg-slate-50 space-y-3">
                             <h4 class="font-bold text-emerald-800 border-b pb-1">告別式の進行</h4>
                             
-                            <!-- 告別式：入場時（「合掌」を着席合掌へ変更） -->
                             <div>
                                 <label class="block font-bold text-gray-600 mb-1">入場時</label>
                                 <select id="edit-kokubetsu-entry" onchange="toggleKokuEntryOther()" class="w-full p-2 border rounded bg-white">
