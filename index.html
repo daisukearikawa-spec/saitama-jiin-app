@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>埼玉本社 周辺寺院詳細アプリ (Ver 22.0)</title>
+    <title>埼玉本社 周辺寺院詳細アプリ (Ver 23.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -15,7 +15,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans text-gray-800">
 
-    <!-- 全体コンテナ -->
+    <!-- 全体コンテナ（スマホでは幅100%、PC・タブレットでは最大幅448pxで中央寄せ） -->
     <div class="w-full md:max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col justify-between">
 
         <!-- ヘッダー -->
@@ -30,7 +30,7 @@
         </main>
 
         <footer id="app-footer" class="bg-gray-50 border-t p-3 text-center text-xs text-gray-500 hidden">
-            埼玉本社 周辺寺院詳細アプリ v22.0 (業務運用版)
+            埼玉本社 周辺寺院詳細アプリ v23.0 (業務運用版)
         </footer>
     </div>
 
@@ -73,7 +73,7 @@
             { name: "その他新興宗教系", kana: "ソノタシンコウシュウキョウケイ", has_sub: true, placeholder: "新興宗教系の詳細" }
         ];
 
-        // 共有お寺データベース (★越生町・法恩寺（青蓮寺）の新規データをひな型として最初から追加しました！)
+        // 共有お寺データベース
         const defaultTemples = [
             {
                 id: 1,
@@ -100,13 +100,13 @@
                 crematory_accompany_other: "",
                 notes: "・駐車場が狭いため、大型の葬儀の際は乗り合わせを優先的に案内してください。\n・控室のエアコンの効きが悪いので、事前に入れておくこと。\n・お布施袋は黄白の水引、表書きは「御布施」を指定されています。",
                 tsuya_entry: "着席合掌", tsuya_entry_other: "",
-                tsuya_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
+                tsuya_opening: "〇〇家　菩提寺　真言宗　智山派　観音寺　ご住職　導師のもとに　執り行います",
                 tsuya_shoko: "10分程、木魚から",
                 tsuya_howa: "有り", tsuya_howa_time: "約5分",
                 tsuya_exit: "着席合掌", tsuya_exit_other: "",
                 tsuya_chant_time: "30",
                 kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
-                kokubetsu_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
+                kokubetsu_opening: "〇〇家　菩提寺　真言宗　智山派　観音寺　ご住職　導師のもとに　執り行います",
                 kokubetsu_indo: "10分程　立って作法",
                 kokubetsu_shoko: "10分程、木魚から",
                 kokubetsu_howa: "無し", kokubetsu_howa_time: "",
@@ -164,7 +164,7 @@
         let temples = JSON.parse(localStorage.getItem('temples')) || defaultTemples;
         let staffs = JSON.parse(localStorage.getItem('staffs')) || defaultStaffs;
 
-        // もしデータ数が初期ひな形より少ない（古いキャッシュデータがスマホに残っている）場合、強制マージする処理
+        // データの数が初期ひな形より少ない場合は、自動マージする
         if (temples.length < defaultTemples.length) {
             temples = defaultTemples;
             saveToStorage();
@@ -330,7 +330,7 @@
             `;
         }
 
-        // 検索
+        // 検索絞り込み
         function filterTemples() {
             const query = document.getElementById('search-input').value.toLowerCase();
             const filtered = temples.filter(t => 
@@ -384,14 +384,20 @@
             const body = document.getElementById('app-body');
             const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.address)}`;
 
-            const makeToggleButtons = (activeValue, btn1Label, btn2Label) => {
+            // ★ 有り・無し・確認中のトグルボタン作成関数 (新規アップデート)
+            const makeToggleButtons3 = (activeValue, btn1Label, btn2Label, btn3Label) => {
                 const btn1Active = activeValue === btn1Label;
-                const activeClass = "bg-emerald-700 text-white font-bold px-4 py-1.5 rounded-lg shadow text-xs";
-                const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-4 py-1.5 rounded-lg text-xs cursor-default";
+                const btn2Active = activeValue === btn2Label;
+                const btn3Active = activeValue === btn3Label;
+                
+                const activeClass = "bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow text-xs";
+                const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-3 py-1.5 rounded-lg text-xs cursor-default";
+                
                 return `
-                    <div class="flex gap-2">
+                    <div class="flex gap-1.5">
                         <span class="${btn1Active ? activeClass : inactiveClass}">${btn1Label}</span>
-                        <span class="${!btn1Active ? activeClass : inactiveClass}">${btn2Label}</span>
+                        <span class="${btn2Active ? activeClass : inactiveClass}">${btn2Label}</span>
+                        <span class="${btn3Active ? activeClass : inactiveClass}">${btn3Label}</span>
                     </div>
                 `;
             };
@@ -425,7 +431,7 @@
                         }).join('')}
                     </div>
                 `;
-            } else {
+            } else if (t.has_pickup === '無し') {
                 const options = ["自家用車", "電車その他", "その他"];
                 pickupDetailButtonsHTML = `
                     <div class="flex flex-wrap gap-1.5 mt-2">
@@ -441,6 +447,8 @@
                         }).join('')}
                     </div>
                 `;
+            } else {
+                pickupDetailButtonsHTML = `<span class="text-gray-400 font-semibold italic text-xs block mt-1">送迎詳細はありません</span>`;
             }
 
             // 火葬同行
@@ -567,17 +575,18 @@
                             ${imagesHTML}
                         </div>
 
+                        <!-- タブB: 届け・送迎（書き物・送迎を3択表示に変更しました） -->
                         <div id="tab-content-delivery" class="space-y-3 hidden">
                             <div class="bg-gray-50 border rounded-lg p-3 space-y-3 text-xs shadow-inner">
                                 <div class="flex justify-between items-center border-b pb-1.5">
                                     <span class="font-bold text-gray-600">書き物届け</span>
-                                    ${makeToggleButtons(t.has_delivery, '有り', '無し')}
+                                    ${makeToggleButtons3(t.has_delivery || '無し', '有り', '無し', '確認中')}
                                 </div>
                                 ${deliveryDetailsText}
 
                                 <div class="flex justify-between items-center border-b pb-1.5">
                                     <span class="font-bold text-gray-600">送迎の有無</span>
-                                    ${makeToggleButtons(t.has_pickup, '有り', '無し')}
+                                    ${makeToggleButtons3(t.has_pickup || '無し', '有り', '無し', '確認中')}
                                 </div>
                                 <div>
                                     <span class="text-[9px] text-gray-400 block font-semibold mb-0.5">送迎詳細</span>
@@ -602,7 +611,7 @@
                                     <span>【通夜の進行】</span>
                                     <i class="fa-solid fa-moon"></i>
                                 </div>
-                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? t.tsuya_entry_other : t.tsuya_entry}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? tsuya_entry_other : t.tsuya_entry}</span></p>
                                 <div class="border-b py-1">
                                     <span class="text-gray-400 block">開式の辞:</span>
                                     <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.tsuya_opening || '情報なし'}</span>
@@ -707,8 +716,17 @@
             text += `■ 住所: 〒${t.postal_code} ${t.address}\n`;
             text += `■ 電話: ${t.phone} / FAX: ${t.fax}\n`;
             text += `■ 公式ホームページ: ${t.has_website === '有り' ? t.website_url : '無し'}\n`;
-            text += `■ 書き物届け: ${t.has_delivery === '有り' ? t.delivery_items.join(', ') + ' / ' + t.delivery_other : '無し'}\n`;
-            text += `■ お迎え送迎: ${t.has_pickup === '有り' ? '有り（' + t.pickup_details.join(', ') + '）' : '無し（' + t.pickup_details.join(', ') + '）'}\n`;
+            text += `■ 書き物届け: ${t.has_delivery || '無し'}\n`;
+            if (t.has_delivery === '有り') {
+                text += `  (詳細: ${t.delivery_items.join(', ')})\n`;
+                if (t.delivery_other) text += `  (その他: ${t.delivery_other})\n`;
+            }
+            text += `■ お迎え送迎: ${t.has_pickup || '無し'}\n`;
+            if (t.has_pickup === '有り') {
+                text += `  (詳細: ${t.pickup_details.join(', ')})\n`;
+            } else if (t.has_pickup === '無し') {
+                text += `  (詳細: ${t.pickup_details.join(', ')})\n`;
+            }
             if (t.pickup_other) text += `  (送迎その他: ${t.pickup_other})\n`;
             text += `■ 初七日法要: ${t.first_seven_days === 'その他' ? t.first_seven_other : t.first_seven_days}\n`;
             text += `■ 火葬場への同行: ${t.crematory_accompany === 'その他' ? t.crematory_accompany_other : t.crematory_accompany}\n`;
@@ -716,7 +734,7 @@
             
             text += `【通夜の進行】\n`;
             text += `・入場時: ${t.tsuya_entry === 'その他' ? t.tsuya_entry_other : t.tsuya_entry}\n`;
-            text += `・開式の辞: ${t.tsuya_opening}\n`;
+            text += `・開式の辞: ${t.tsuya_opening || '情報なし'}\n`;
             text += `・焼香: ${t.tsuya_shoko || '情報なし'}\n`;
             text += `・法話: ${t.tsuya_howa === '有り' ? t.tsuya_howa_time : '無し'}\n`;
             text += `・退場: ${t.tsuya_exit === 'その他' ? t.tsuya_exit_other : t.tsuya_exit}\n`;
@@ -724,7 +742,7 @@
             
             text += `【告別式の進行】\n`;
             text += `・入場時: ${t.kokubetsu_entry === 'その他' ? t.kokubetsu_entry_other : t.kokubetsu_entry}\n`;
-            text += `・開式の辞: ${t.kokubetsu_opening}\n`;
+            text += `・開式の辞: ${t.kokubetsu_opening || '情報なし'}\n`;
             text += `・引導: ${t.kokubetsu_indo || '情報なし'}\n`;
             text += `・焼香: ${t.kokubetsu_shoko || '情報なし'}\n`;
             text += `・法話: ${t.kokubetsu_howa === '有り' ? t.kokubetsu_howa_time : '無し'}\n`;
@@ -783,7 +801,7 @@
             document.body.removeChild(textArea);
         }
 
-        // 登録・編集
+        // 登録・編集用一時変数
         let edit_has_pickup = "";
         let edit_pickup_details = [];
         let isEditMode = false;
@@ -794,6 +812,9 @@
 
         let edit_crematory_accompany = "不明";
         let edit_kokubetsu_shukkan_sendo = "不明";
+
+        // 書き物の有無を管理する一時変数 (新規追加)
+        let edit_has_delivery = "無し";
 
         function showEditScreen(id) {
             const body = document.getElementById('app-body');
@@ -808,6 +829,7 @@
                 edit_kokubetsu_howa = t.kokubetsu_howa || "無し";
                 edit_crematory_accompany = t.crematory_accompany || "不明";
                 edit_kokubetsu_shukkan_sendo = t.kokubetsu_shukkan_sendo || "不明";
+                edit_has_delivery = t.has_delivery || "無し"; // 新規
             } else {
                 isEditMode = false;
                 tempImages = [];
@@ -816,6 +838,7 @@
                 edit_kokubetsu_howa = "無し";
                 edit_crematory_accompany = "不明";
                 edit_kokubetsu_shukkan_sendo = "不明";
+                edit_has_delivery = "無し"; // 新規
                 t = {
                     id: "", name: "", kana: "", sect: "", sect_kana: "", postal_code: "", address: "", phone: "", fax: "",
                     has_website: "無し", website_url: "",
@@ -825,11 +848,11 @@
                     crematory_accompany: "不明", crematory_accompany_other: "",
                     notes: "",
                     tsuya_entry: "着席合掌", tsuya_entry_other: "",
-                    tsuya_opening: "〇〇家菩提寺　〇〇寺　ご住職導師のもとに　執り行います",
+                    tsuya_opening: "〇〇家　菩提寺　〇〇宗　〇〇派　〇〇寺　ご住職　導師のもとに　執り行います", // デフォルト文面アップデート
                     tsuya_shoko: "", tsuya_howa: "無し", tsuya_howa_time: "", tsuya_exit: "着席合掌", tsuya_exit_other: "",
                     tsuya_chant_time: "",
                     kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
-                    kokubetsu_opening: "〇〇家菩提寺　〇〇寺　ご住職導師のもとに　執り行います",
+                    kokubetsu_opening: "〇〇家　菩提寺　〇〇宗　〇〇派　〇〇寺　ご住職　導師のもとに　執り行います", // デフォルト文面アップデート
                     kokubetsu_indo: "", kokubetsu_shoko: "", kokubetsu_howa: "無し", kokubetsu_howa_time: "", kokubetsu_exit: "起立合掌", kokubetsu_exit_other: "",
                     kokubetsu_shukkan_sendo: "不明",
                     kokubetsu_chant_time: "",
@@ -979,23 +1002,18 @@
                             <div id="image-previews" class="flex flex-wrap gap-2 pt-2"></div>
                         </div>
 
-                        <!-- 1. 書き物届けの有無 -->
-                        <div class="space-y-1 border-t pt-3">
+                        <!-- 1. ★書き物届けの有無 (タップ選択式トグルにアップデート) -->
+                        <div class="space-y-1.5 border-t pt-3">
                             <label class="block font-bold text-gray-600">書き物届けの有無</label>
-                            <div class="flex gap-4">
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="edit-delivery" value="有り" ${t.has_delivery === '有り' ? 'checked' : ''} onclick="toggleDeliveryItems(true)" class="text-emerald-700">
-                                    <span class="ml-2">有り</span>
-                                </label>
-                                <label class="inline-flex items-center">
-                                    <input type="radio" name="edit-delivery" value="無し" ${t.has_delivery === '無し' ? 'checked' : ''} onclick="toggleDeliveryItems(false)" class="text-emerald-700">
-                                    <span class="ml-2">無し</span>
-                                </label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-delivery-yes" onclick="setEditDeliveryHas('有り')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                <button type="button" id="btn-delivery-no" onclick="setEditDeliveryHas('無し')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                <button type="button" id="btn-delivery-pending" onclick="setEditDeliveryHas('確認中')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
                             </div>
                         </div>
 
                         <!-- 書き物詳細 -->
-                        <div id="delivery-items-area" class="${t.has_delivery === '無し' ? 'hidden' : ''} bg-gray-50 p-3 rounded border space-y-2">
+                        <div id="delivery-items-area" class="hidden bg-gray-50 p-3 rounded border space-y-2">
                             <label class="block font-bold text-gray-500">書き物の種類（複数選択可）</label>
                             <div class="grid grid-cols-2 gap-2">
                                 ${checkboxesHTML}
@@ -1006,12 +1024,13 @@
                             </div>
                         </div>
 
-                        <!-- 2. 送迎の有無 -->
+                        <!-- 2. ★送迎の有無 (有り・無し・確認中の3択ボタン化) -->
                         <div class="space-y-1.5">
                             <label class="block font-bold text-gray-600">送迎の有無</label>
                             <div class="flex gap-2">
                                 <button type="button" id="btn-pickup-yes" onclick="setEditPickupHas('有り')" class="flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm"></button>
                                 <button type="button" id="btn-pickup-no" onclick="setEditPickupHas('無し')" class="flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                <button type="button" id="btn-pickup-pending" onclick="setEditPickupHas('確認中')" class="flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm"></button>
                             </div>
                         </div>
 
@@ -1139,7 +1158,6 @@
                         <div class="border p-3 rounded-lg bg-slate-50 space-y-3">
                             <h4 class="font-bold text-emerald-800 border-b pb-1">告別式の進行</h4>
                             
-                            <!-- 告別式：入場時 -->
                             <div>
                                 <label class="block font-bold text-gray-600 mb-1">入場時</label>
                                 <select id="edit-kokubetsu-entry" onchange="toggleKokuEntryOther()" class="w-full p-2 border rounded bg-white">
@@ -1225,6 +1243,7 @@
             `;
 
             updateEditWebUI();
+            updateEditDeliveryUI(); // 書き物届けUI同期
             updateEditPickupUI();
             updateEditHowaUI();
             updateEditCrematoryUI();
@@ -1234,87 +1253,7 @@
             onSectSelectChange(true);
         }
 
-        // --- 宗派プルダウン変更時の連動制御 ---
-        function onSectSelectChange(isInit = false) {
-            const select = document.getElementById('edit-sect-select');
-            const kanaInput = document.getElementById('edit-sect-kana');
-            const subInputArea = document.getElementById('sect-sub-input-area');
-            const subLabel = document.getElementById('sect-sub-label');
-            const subInput = document.getElementById('edit-sect-sub-input');
-
-            const val = select.value;
-            if (!val) {
-                if (!isInit) {
-                    kanaInput.value = "";
-                    subInputArea.classList.add('hidden');
-                }
-                return;
-            }
-
-            const matched = sectList.find(s => s.name === val);
-            if (matched) {
-                kanaInput.value = matched.kana;
-
-                if (matched.has_sub) {
-                    subInputArea.classList.remove('hidden');
-                    subLabel.innerText = `「${matched.name}」の詳細・系統をご記入ください`;
-                    subInput.placeholder = matched.placeholder || "詳細を入力";
-                } else {
-                    subInputArea.classList.add('hidden');
-                    if (!isInit) subInput.value = "";
-                }
-            }
-        }
-
-        // --- 郵便番号から住所を自動検索 ---
-        function searchAddressByZip() {
-            let zip = document.getElementById('edit-postal').value.trim();
-            zip = zip.replace(/-/g, '');
-            if (zip.length !== 7 || isNaN(zip)) {
-                alert('郵便番号は半角数字7桁（ハイフン無し）で入力してください。');
-                return;
-            }
-            fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 200 && data.results) {
-                        const res = data.results[0];
-                        const fullAddress = res.address1 + res.address2 + res.address3;
-                        document.getElementById('edit-address').value = fullAddress;
-                    } else {
-                        alert('該当する住所が見つかりませんでした。郵便番号をもう一度ご確認ください。');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error fetching address:', err);
-                    alert('住所自動取得の通信中にエラーが発生しました。\nインターネット接続状況をご確認ください。');
-                });
-        }
-
-        // --- 削除、および削除依頼 ---
-        function requestOrDeleteTemple(id) {
-            if (!confirm('本当にこの寺院の情報を削除しますか？')) {
-                return;
-            }
-            if (currentUserRole === 'admin') {
-                temples = temples.filter(item => item.id !== id);
-                saveToStorage();
-                alert('この寺院の情報を完全に削除しました。');
-                showListScreen();
-            } else {
-                const index = temples.findIndex(item => item.id === id);
-                if (index !== -1) {
-                    temples[index].delete_requested = true;
-                    temples[index].delete_request_by = currentUser;
-                    temples[index].delete_request_time = getFormattedNow();
-                }
-                saveToStorage();
-                alert('管理者にて削除します（管理者に削除依頼を送信しました）。');
-                showDetailScreen(id);
-            }
-        }
-
-        // --- ウェブサイト ---
+        // --- 編集画面の「ウェブサイト」制御 ---
         function setEditWebHas(hasValue) {
             edit_has_website = hasValue;
             updateEditWebUI();
@@ -1342,13 +1281,46 @@
             }
         }
 
-        // --- 送迎 ---
+        // --- 編集画面の「書き物届け」3択ボタン制御 (新規追加) ---
+        function setEditDeliveryHas(hasValue) {
+            edit_has_delivery = hasValue;
+            updateEditDeliveryUI();
+        }
+
+        function updateEditDeliveryUI() {
+            const btnYes = document.getElementById('btn-delivery-yes');
+            const btnNo = document.getElementById('btn-delivery-no');
+            const btnPending = document.getElementById('btn-delivery-pending');
+            const detailsArea = document.getElementById('delivery-items-area');
+
+            const activeClass = "bg-emerald-700 text-white font-bold";
+            const inactiveClass = "bg-gray-200 text-gray-400 font-bold";
+
+            // 1. ボタンの色分け
+            btnYes.className = `flex-1 py-1.5 rounded-lg text-xs transition shadow-sm ${edit_has_delivery === '有り' ? activeClass : inactiveClass}`;
+            btnYes.innerText = "有り";
+            btnNo.className = `flex-1 py-1.5 rounded-lg text-xs transition shadow-sm ${edit_has_delivery === '無し' ? activeClass : inactiveClass}`;
+            btnNo.innerText = "無し";
+            btnPending.className = `flex-1 py-1.5 rounded-lg text-xs transition shadow-sm ${edit_has_delivery === '確認中' ? activeClass : inactiveClass}`;
+            btnPending.innerText = "確認中";
+
+            // 2. 「有り」の時だけ詳細項目リストを表示
+            if (edit_has_delivery === '有り') {
+                detailsArea.classList.remove('hidden');
+            } else {
+                detailsArea.classList.add('hidden');
+            }
+        }
+
+        // --- 編集画面の「送迎」3択ボタン制御 (新規アップデート) ---
         function setEditPickupHas(hasValue) {
             edit_has_pickup = hasValue;
             if (hasValue === '有り') {
                 edit_pickup_details = ["ハイヤー"];
-            } else {
+            } else if (hasValue === '無し') {
                 edit_pickup_details = ["自家用車"];
+            } else {
+                edit_pickup_details = []; // 確認中の場合は詳細なし
             }
             updateEditPickupUI();
         }
@@ -1368,28 +1340,37 @@
         function updateEditPickupUI() {
             const btnYes = document.getElementById('btn-pickup-yes');
             const btnNo = document.getElementById('btn-pickup-no');
+            const btnPending = document.getElementById('btn-pickup-pending');
+            const optionsContainer = document.getElementById('pickup-options-container');
             const choicesYes = document.getElementById('pickup-choices-yes');
             const choicesNo = document.getElementById('pickup-choices-no');
             const otherInputArea = document.getElementById('pickup-other-input-area');
-            const activeClass = "bg-emerald-700 text-white";
-            const inactiveClass = "bg-gray-200 text-gray-400";
+            const activeClass = "bg-emerald-700 text-white font-bold";
+            const inactiveClass = "bg-gray-200 text-gray-400 font-bold";
 
+            // 1. 送迎有り・無し・確認中の親ボタン色分け
+            btnYes.className = `flex-grow py-2 rounded-lg text-xs transition shadow-sm ${edit_has_pickup === '有り' ? activeClass : inactiveClass}`;
+            btnYes.innerText = "有り";
+            btnNo.className = `flex-grow py-2 rounded-lg text-xs transition shadow-sm ${edit_has_pickup === '無し' ? activeClass : inactiveClass}`;
+            btnNo.innerText = "無し";
+            btnPending.className = `flex-grow py-2 rounded-lg text-xs transition shadow-sm ${edit_has_pickup === '確認中' ? activeClass : inactiveClass}`;
+            btnPending.innerText = "確認中";
+
+            // 2. 子ボタン群の表示出し分け
             if (edit_has_pickup === '有り') {
-                btnYes.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
-                btnYes.innerText = "有り";
-                btnNo.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
-                btnNo.innerText = "無し";
+                optionsContainer.classList.remove('hidden');
                 choicesYes.classList.remove('hidden');
                 choicesNo.classList.add('hidden');
-            } else {
-                btnYes.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
-                btnYes.innerText = "有り";
-                btnNo.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
-                btnNo.innerText = "無し";
+            } else if (edit_has_pickup === '無し') {
+                optionsContainer.classList.remove('hidden');
                 choicesYes.classList.add('hidden');
                 choicesNo.classList.remove('hidden');
+            } else {
+                // 確認中の場合は詳細ボックスを完全に隠す
+                optionsContainer.classList.add('hidden');
             }
 
+            // 3. 有り詳細ボタン群の色
             const yesOpts = ["ハイヤー", "タクシー", "どちらでも可", "不明", "その他"];
             yesOpts.forEach(opt => {
                 const el = document.getElementById(opt === 'その他' ? 'opt-その他-yes' : `opt-${opt}`);
@@ -1399,6 +1380,7 @@
                 el.innerText = opt;
             });
 
+            // 4. 無し詳細ボタン群の色
             const noOpts = ["自家用車", "電車その他", "その他"];
             noOpts.forEach(opt => {
                 const el = document.getElementById(opt === 'その他' ? 'opt-その他-no' : `opt-${opt}`);
@@ -1408,6 +1390,7 @@
                 el.innerText = opt;
             });
 
+            // 5. その他自由入力エリア
             if (edit_pickup_details.includes('その他')) {
                 otherInputArea.classList.remove('hidden');
             } else {
@@ -1645,7 +1628,6 @@
                 return;
             }
 
-            const has_delivery = document.querySelector('input[name="edit-delivery"]:checked').value;
             const checkedItems = [];
             const checkboxes = document.querySelectorAll('input[name="edit-items"]:checked');
             checkboxes.forEach(cb => checkedItems.push(cb.value));
@@ -1691,7 +1673,9 @@
                         has_website: edit_has_website,
                         website_url: edit_has_website === '有り' ? website_url : "",
                         images: tempImages,
-                        has_delivery, delivery_items: has_delivery === '有り' ? checkedItems : [], delivery_other: has_delivery === '有り' ? delivery_other : '',
+                        has_delivery: edit_has_delivery, // 3択化
+                        delivery_items: edit_has_delivery === '有り' ? checkedItems : [], 
+                        delivery_other: edit_has_delivery === '有り' ? delivery_other : '',
                         has_pickup: edit_has_pickup, 
                         pickup_details: edit_pickup_details,
                         pickup_other: edit_pickup_details.includes('その他') ? pickup_other : '',
@@ -1726,7 +1710,9 @@
                     has_website: edit_has_website,
                     website_url: edit_has_website === '有り' ? website_url : "",
                     images: tempImages,
-                    has_delivery, delivery_items: has_delivery === '有り' ? checkedItems : [], delivery_other: has_delivery === '有り' ? delivery_other : '',
+                    has_delivery: edit_has_delivery, // 3択化
+                    delivery_items: edit_has_delivery === '有り' ? checkedItems : [], 
+                    delivery_other: edit_has_delivery === '有り' ? delivery_other : '',
                     has_pickup: edit_has_pickup, 
                     pickup_details: edit_pickup_details,
                     pickup_other: edit_pickup_details.includes('その他') ? pickup_other : '',
@@ -1943,4 +1929,3 @@
         }
     </script>
 </body>
-</html>
