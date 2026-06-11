@@ -3,8 +3,9 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>埼玉本社 周辺寺院詳細アプリ (Ver 19.0)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>埼玉本社 周辺寺院詳細アプリ (Ver 20.0)</title>
+    <!-- スマホ対応のデザインを適用するためのライブラリ -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -16,7 +17,12 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans text-gray-800">
 
-    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col justify-between">
+    <!-- 
+       ★スマホ対応コンテナ幅の修正★
+       w-full（基本は横幅100%）にし、md:max-w-md（パソコン等、画面が広いときだけスマホサイズ）に制限。
+       これにより、スマホ実機では自動的に画面いっぱいに広く表示されるようになります。
+    -->
+    <div class="w-full md:max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col justify-between">
 
         <!-- ヘッダー -->
         <header class="bg-emerald-800 text-white p-4 shadow-md flex justify-between items-center">
@@ -30,7 +36,7 @@
         </main>
 
         <footer id="app-footer" class="bg-gray-50 border-t p-3 text-center text-xs text-gray-500 hidden">
-            埼玉本社 周辺寺院詳細アプリ v19.0 (業務運用版)
+            埼玉本社 周辺寺院詳細アプリ v20.0 (業務運用版)
         </footer>
     </div>
 
@@ -293,6 +299,12 @@
             `;
         }
 
+        function logout() {
+            currentUser = null;
+            currentUserRole = null;
+            showLoginScreen();
+        }
+
         // 検索絞り込み
         function filterTemples() {
             const query = document.getElementById('search-input').value.toLowerCase();
@@ -341,50 +353,49 @@
             container.innerHTML = html;
         }
 
-        // 3. 詳細画面（★スマホの縦幅削減のため、タブUIに完全リニューアルしました）
+        // 3. 詳細画面
         function showDetailScreen(id) {
             const t = temples.find(item => item.id === id);
             const body = document.getElementById('app-body');
             const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.address)}`;
 
-            // 有り・無しボタン作成関数
             const makeToggleButtons = (activeValue, btn1Label, btn2Label) => {
                 const btn1Active = activeValue === btn1Label;
-                const activeClass = "bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow text-[10px]";
-                const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-3 py-1 rounded text-[10px] cursor-default";
+                const activeClass = "bg-emerald-700 text-white font-bold px-4 py-1.5 rounded-lg shadow text-xs";
+                const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-4 py-1.5 rounded-lg text-xs cursor-default";
                 return `
-                    <div class="flex gap-1.5">
+                    <div class="flex gap-2">
                         <span class="${btn1Active ? activeClass : inactiveClass}">${btn1Label}</span>
                         <span class="${!btn1Active ? activeClass : inactiveClass}">${btn2Label}</span>
                     </div>
                 `;
             };
 
-            // 書き物詳細テキスト
+            // 書き物詳細
             let deliveryDetailsText = '';
             if (t.has_delivery === '有り') {
                 const itemsList = t.delivery_items && t.delivery_items.length > 0 ? t.delivery_items.join(', ') : 'なし';
                 const otherText = t.delivery_other ? ` (その他: ${t.delivery_other})` : '';
-                deliveryDetailsText = `<div class="text-emerald-900 font-semibold bg-emerald-50 border border-emerald-200 rounded p-2 mt-1.5">
-                    <span class="block text-[10px] font-bold text-emerald-800 mb-0.5">書き物詳細:</span>
+                deliveryDetailsText = `<div class="text-emerald-900 font-semibold bg-emerald-50 border border-emerald-200 rounded p-2 mt-2">
+                    <span class="block text-xs font-bold text-emerald-800 mb-1">書き物詳細:</span>
                     ${itemsList}${otherText}
                 </div>`;
             }
 
-            // 送迎詳細ボタン
+            // 送迎詳細
             let pickupDetailButtonsHTML = '';
             if (t.has_pickup === '有り') {
                 const options = ["ハイヤー", "タクシー", "どちらでも可", "不明", "その他"];
                 pickupDetailButtonsHTML = `
-                    <div class="flex flex-wrap gap-1 mt-1">
+                    <div class="flex flex-wrap gap-1.5 mt-2">
                         ${options.map(opt => {
                             const isSelected = t.pickup_details && t.pickup_details.includes(opt);
                             let label = opt;
                             if (opt === 'その他' && t.pickup_other) {
                                 label = `その他（${t.pickup_other}）`;
                             }
-                            const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
-                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                            const activeClass = "bg-emerald-700 text-white font-bold px-2.5 py-1 rounded shadow text-xs";
+                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2.5 py-1 rounded text-xs cursor-default";
                             return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
                         }).join('')}
                     </div>
@@ -392,74 +403,68 @@
             } else {
                 const options = ["自家用車", "電車その他", "その他"];
                 pickupDetailButtonsHTML = `
-                    <div class="flex flex-wrap gap-1 mt-1">
+                    <div class="flex flex-wrap gap-1.5 mt-2">
                         ${options.map(opt => {
                             const isSelected = (t.pickup_details && t.pickup_details.includes(opt)) || t.pickup_detail === opt;
                             let label = opt;
                             if (opt === 'その他' && t.pickup_other) {
                                 label = `その他（${t.pickup_other}）`;
                             }
-                            const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
-                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                            const activeClass = "bg-emerald-700 text-white font-bold px-2.5 py-1 rounded shadow text-xs";
+                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2.5 py-1 rounded text-xs cursor-default";
                             return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
                         }).join('')}
                     </div>
                 `;
             }
 
-            // 火葬同行ボタン
+            // 火葬同行
             const cre_options = ["有り", "無し", "不明", "その他"];
             const selectedCre = t.crematory_accompany || "不明";
             let creDetailButtonsHTML = `
-                <div class="flex flex-wrap gap-1 mt-1">
+                <div class="flex flex-wrap gap-1.5 mt-1.5">
                     ${cre_options.map(opt => {
                         const isSelected = selectedCre === opt;
                         let label = opt;
                         if (opt === 'その他' && t.crematory_accompany_other) {
                             label = `その他（${t.crematory_accompany_other}）`;
                         }
-                        const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
-                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                        const activeClass = "bg-emerald-700 text-white font-bold px-2.5 py-1 rounded shadow text-xs";
+                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2.5 py-1 rounded text-xs cursor-default";
                         return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
                     }).join('')}
                 </div>
             `;
 
-            // 出棺先導ボタン
+            // 出棺先導
             const sendo_options = ["有り", "無し", "不明"];
             const selectedSendo = t.kokubetsu_shukkan_sendo || "不明";
             let sendoDetailButtonsHTML = `
-                <div class="flex gap-1 mt-1">
+                <div class="flex gap-1.5 mt-1.5">
                     ${sendo_options.map(opt => {
                         const isSelected = selectedSendo === opt;
-                        const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
-                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                        const activeClass = "bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow text-xs";
+                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-3 py-1 rounded text-xs cursor-default";
                         return `<span class="${isSelected ? activeClass : inactiveClass}">${opt}</span>`;
                     }).join('')}
                 </div>
             `;
 
-            // 参考画像スライド
+            // 参考画像表示
             let imagesHTML = '';
             if (t.images && t.images.length > 0) {
                 imagesHTML = `
-                    <div class="mt-3 bg-gray-50 p-2.5 rounded-lg border">
-                        <span class="block text-[10px] font-bold text-gray-500 mb-1.5 flex items-center gap-1">
+                    <div class="border-t pt-4">
+                        <span class="block text-xs font-bold text-gray-500 mb-2 flex items-center gap-1">
                             <i class="fa-solid fa-image text-emerald-800"></i>参考画像 (${t.images.length}/10枚) ※タップで拡大
                         </span>
-                        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth snap-x">
+                        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth snap-x">
                             ${t.images.map(img => `
                                 <div class="flex-shrink-0 snap-start">
-                                    <img src="${img}" onclick="openImageModal('${img}')" class="w-16 h-16 object-cover rounded border shadow-sm cursor-pointer hover:opacity-90 transition">
+                                    <img src="${img}" onclick="openImageModal('${img}')" class="w-24 h-24 object-cover rounded-lg border shadow-sm cursor-pointer hover:opacity-90 transition">
                                 </div>
                             `).join('')}
                         </div>
-                    </div>
-                `;
-            } else {
-                imagesHTML = `
-                    <div class="mt-3 p-4 border border-dashed rounded-lg text-center text-gray-400 text-xs">
-                        登録されている参考画像はありません。
                     </div>
                 `;
             }
@@ -480,7 +485,6 @@
                 </div>
             ` : '';
 
-            // 画面の構築 (ヘッダー情報とタブバー、そして各タブコンテンツエリア)
             body.innerHTML = `
                 <button onclick="showListScreen()" class="mb-3 text-emerald-800 font-bold flex items-center gap-1 hover:underline text-sm">
                     <i class="fa-solid fa-arrow-left"></i> 一覧に戻る
@@ -488,7 +492,7 @@
 
                 <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
                     
-                    <!-- ① 常に上部に固定表示するお寺名と更新スタンプ -->
+                    <!-- ① 上部お寺名 -->
                     <div class="p-4 bg-emerald-50 border-b">
                         <div class="text-[9px] text-gray-400 font-bold flex items-center gap-1 mb-1">
                             <i class="fa-solid fa-clock"></i>
@@ -502,7 +506,7 @@
 
                     ${deleteRequestBannerHTML}
 
-                    <!-- ② ★スマートフォンの縦幅を節約する「タブ選択バー」 -->
+                    <!-- ② タブバー -->
                     <div class="flex border-b text-[11px] font-bold text-gray-400 bg-gray-50 select-none">
                         <button onclick="switchTab('basic')" id="btn-tab-basic" class="flex-1 py-3 text-center border-b-2 border-emerald-700 text-emerald-800 transition">基本・画像</button>
                         <button onclick="switchTab('delivery')" id="btn-tab-delivery" class="flex-1 py-3 text-center border-b-2 border-transparent transition">届け・送迎</button>
@@ -510,10 +514,9 @@
                         <button onclick="switchTab('notes')" id="btn-tab-notes" class="flex-1 py-3 text-center border-b-2 border-transparent transition">注意事項</button>
                     </div>
 
-                    <!-- ③ 各タブの中身 (hiddenで出し分け) -->
+                    <!-- ③ タブコンテンツ -->
                     <div class="p-4 space-y-4">
                         
-                        <!-- タブA: 基本情報・参考画像 -->
                         <div id="tab-content-basic" class="space-y-3">
                             <div class="text-xs space-y-2">
                                 <div class="flex justify-between items-start">
@@ -536,12 +539,9 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            <!-- 参考画像表示 -->
                             ${imagesHTML}
                         </div>
 
-                        <!-- タブB: 届け・送迎 -->
                         <div id="tab-content-delivery" class="space-y-3 hidden">
                             <div class="bg-gray-50 border rounded-lg p-3 space-y-3 text-xs shadow-inner">
                                 <div class="flex justify-between items-center border-b pb-1.5">
@@ -571,9 +571,7 @@
                             </div>
                         </div>
 
-                        <!-- タブC: 式進行 -->
                         <div id="tab-content-ceremony" class="space-y-3 hidden">
-                            <!-- 通夜進行 -->
                             <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs shadow-inner">
                                 <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
                                     <span>【通夜の進行】</span>
@@ -590,7 +588,6 @@
                                 <p class="grid grid-cols-3 py-1 font-bold"><span class="text-gray-500">読経時間:</span><span class="col-span-2 text-emerald-800">${tsuyaChantText}</span></p>
                             </div>
 
-                            <!-- 告別式進行 -->
                             <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs shadow-inner">
                                 <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
                                     <span>【告別式の進行】</span>
@@ -610,7 +607,6 @@
                             </div>
                         </div>
 
-                        <!-- タブD: 注意事項 -->
                         <div id="tab-content-notes" class="space-y-3 hidden">
                             <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs min-h-[150px] shadow-inner">
                                 <span class="block text-[10px] text-amber-800 font-bold mb-1"><i class="fa-solid fa-circle-exclamation mr-1"></i>注意事項</span>
@@ -620,7 +616,7 @@
 
                     </div>
 
-                    <!-- ④【管理者に伝える】ボタンエリア (タブの切り替えに関わらず最下部に配置して押しやすく) -->
+                    <!-- ④「管理者に伝える」連絡エリア -->
                     <div class="p-4 border-t bg-gray-50 space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="font-bold text-[10px] text-blue-900 flex items-center gap-1"><i class="fa-solid fa-paper-plane"></i>この情報を管理者に伝える</span>
@@ -639,7 +635,7 @@
                         </div>
                     </div>
 
-                    <!-- ⑤ ボタン関係 (公式HP、電話、編集) -->
+                    <!-- ⑤ 公式HP、電話、編集 -->
                     <div class="p-4 bg-white border-t space-y-3">
                         <div class="flex gap-3">
                             ${t.has_website === '有り' && t.website_url ? `
@@ -665,26 +661,20 @@
             `;
         }
 
-        // --- ★タブ切り替え用のJavascriptロジック（新規追加） ---
+        // タブ切り替え
         function switchTab(tabId) {
             const tabs = ['basic', 'delivery', 'ceremony', 'notes'];
-            
-            // すべてのコンテンツを非表示に
             tabs.forEach(t => {
                 document.getElementById(`tab-content-${t}`).classList.add('hidden');
-                
-                // ボタンの境界線と文字色をリセット
                 const btn = document.getElementById(`btn-tab-${t}`);
                 btn.className = "flex-1 py-3 text-center border-b-2 border-transparent transition";
             });
-
-            // 選択されたタブのみを表示・強調
             document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`btn-tab-${tabId}`);
             activeBtn.className = "flex-1 py-3 text-center border-b-2 border-emerald-700 text-emerald-800 font-bold transition";
         }
 
-        // --- 「管理者に伝える」メッセージのテキスト自動生成ロジック ---
+        // メッセージ生成
         function generateShareText(t) {
             let text = `【周辺寺院アプリ 修正・登録情報】\n`;
             text += `■ 寺院名: ${t.name} (${t.kana})\n`;
@@ -768,7 +758,7 @@
             document.body.removeChild(textArea);
         }
 
-        // 4. 登録・編集
+        // 登録・編集
         let edit_has_pickup = "";
         let edit_pickup_details = [];
         let isEditMode = false;
@@ -1729,7 +1719,7 @@
                     kokubetsu_opening, kokubetsu_indo, kokubetsu_shoko, 
                     kokubetsu_howa: edit_kokubetsu_howa,
                     kokubetsu_howa_time: edit_kokubetsu_howa === '有り' ? kokubetsu_howa_time : '',
-                    kokubetsu_exit, kokubetsu_exit_other: kokubetsu_exit === 'strong' ? kokubetsu_exit_other : '',
+                    kokubetsu_exit, kokubetsu_exit_other: kokubetsu_exit === 'その他' ? kokubetsu_exit_other : '',
                     kokubetsu_shukkan_sendo: edit_kokubetsu_shukkan_sendo,
                     kokubetsu_chant_time,
                     last_updated: timestamp,
