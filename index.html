@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>埼玉本社 周辺寺院詳細アプリ (Ver 20.0)</title>
-    <!-- スマホ対応のデザインを適用するためのライブラリ -->
+    <title>埼玉本社 周辺寺院詳細アプリ (Ver 21.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -17,11 +15,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans text-gray-800">
 
-    <!-- 
-       ★スマホ対応コンテナ幅の修正★
-       w-full（基本は横幅100%）にし、md:max-w-md（パソコン等、画面が広いときだけスマホサイズ）に制限。
-       これにより、スマホ実機では自動的に画面いっぱいに広く表示されるようになります。
-    -->
+    <!-- 全体コンテナ（スマホでは幅100%、PC・タブレットでは最大幅448pxで中央寄せ） -->
     <div class="w-full md:max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col justify-between">
 
         <!-- ヘッダー -->
@@ -36,7 +30,7 @@
         </main>
 
         <footer id="app-footer" class="bg-gray-50 border-t p-3 text-center text-xs text-gray-500 hidden">
-            埼玉本社 周辺寺院詳細アプリ v20.0 (業務運用版)
+            埼玉本社 周辺寺院詳細アプリ v21.0 (業務運用版)
         </footer>
     </div>
 
@@ -1576,6 +1570,7 @@
             else input.classList.add('hidden');
         }
 
+        // 告別式入場・退場その他トグル制御
         function toggleKokuEntryOther() {
             const val = document.getElementById('edit-kokubetsu-entry').value;
             const input = document.getElementById('edit-kokubetsu-entry-other');
@@ -1918,7 +1913,4 @@
         }
     </script>
 </body>
-
-
-
-
+</html>
