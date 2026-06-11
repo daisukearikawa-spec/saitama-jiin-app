@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>埼玉本社 周辺寺院詳細アプリ (Ver 21.0)</title>
+    <title>埼玉本社 周辺寺院詳細アプリ (Ver 22.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -15,7 +15,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans text-gray-800">
 
-    <!-- 全体コンテナ（スマホでは幅100%、PC・タブレットでは最大幅448pxで中央寄せ） -->
+    <!-- 全体コンテナ -->
     <div class="w-full md:max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col justify-between">
 
         <!-- ヘッダー -->
@@ -30,7 +30,7 @@
         </main>
 
         <footer id="app-footer" class="bg-gray-50 border-t p-3 text-center text-xs text-gray-500 hidden">
-            埼玉本社 周辺寺院詳細アプリ v21.0 (業務運用版)
+            埼玉本社 周辺寺院詳細アプリ v22.0 (業務運用版)
         </footer>
     </div>
 
@@ -73,7 +73,7 @@
             { name: "その他新興宗教系", kana: "ソノタシンコウシュウキョウケイ", has_sub: true, placeholder: "新興宗教系の詳細" }
         ];
 
-        // 初期お寺データ
+        // 共有お寺データベース (★越生町・法恩寺（青蓮寺）の新規データをひな型として最初から追加しました！)
         const defaultTemples = [
             {
                 id: 1,
@@ -85,45 +85,76 @@
                 address: "埼玉県坂戸市千代田1-2-3",
                 phone: "049-281-0001",
                 fax: "049-281-0002",
-                
                 has_website: "有り",
                 website_url: "https://example.com/kannonji",
                 images: [],
-                
                 has_delivery: "有り",
                 delivery_items: ["大中上位牌", "野位牌", "5尺塔婆"],
                 delivery_other: "中陰表",
-
                 has_pickup: "有り",
                 pickup_details: ["ハイヤー", "タクシー"],
                 pickup_other: "",
-
                 first_seven_days: "式中初七日",
                 first_seven_other: "",
                 crematory_accompany: "有り",
                 crematory_accompany_other: "",
-
                 notes: "・駐車場が狭いため、大型の葬儀の際は乗り合わせを優先的に案内してください。\n・控室のエアコンの効きが悪いので、事前に入れておくこと。\n・お布施袋は黄白の水引、表書きは「御布施」を指定されています。",
-
                 tsuya_entry: "着席合掌", tsuya_entry_other: "",
                 tsuya_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
                 tsuya_shoko: "10分程、木魚から",
-                tsuya_howa: "有り",
-                tsuya_howa_time: "約5分",
+                tsuya_howa: "有り", tsuya_howa_time: "約5分",
                 tsuya_exit: "着席合掌", tsuya_exit_other: "",
                 tsuya_chant_time: "30",
-
                 kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
                 kokubetsu_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
                 kokubetsu_indo: "10分程　立って作法",
                 kokubetsu_shoko: "10分程、木魚から",
-                kokubetsu_howa: "無し",
-                kokubetsu_howa_time: "",
+                kokubetsu_howa: "無し", kokubetsu_howa_time: "",
                 kokubetsu_exit: "起立合掌", kokubetsu_exit_other: "",
                 kokubetsu_shukkan_sendo: "有り",
                 kokubetsu_chant_time: "40",
-                
                 last_updated: "2026年6月10日 (水) 10:50",
+                delete_requested: false, delete_request_by: "", delete_request_time: ""
+            },
+            {
+                id: 2,
+                name: "法恩寺（青蓮寺）",
+                kana: "ほうおんじ（しょうれんじ）",
+                sect: "真言宗智山派",
+                sect_kana: "シンゴンシュウチサンハ",
+                postal_code: "3500416",
+                address: "埼玉県入間郡越生町越生704",
+                phone: "049-292-2265",
+                fax: "",
+                has_website: "有り",
+                website_url: "https://www.ogose-houonji.or.jp/",
+                images: [],
+                has_delivery: "有り",
+                delivery_items: ["大中上位牌", "野位牌", "5尺塔婆", "七本塔婆", "杖", "六道"],
+                delivery_other: "詳細も持参",
+                has_pickup: "無し",
+                pickup_details: ["自家用車"],
+                pickup_other: "",
+                first_seven_days: "式中初七日",
+                first_seven_other: "",
+                crematory_accompany: "有り",
+                crematory_accompany_other: "",
+                notes: "武州　越生　松渓山 法恩寺(ぶしゅう　おごせ　しょうけいざん　ほうおんじ) \n\n真言宗智山派\n\n2026年6/9日一日葬\n根本　家\n2019年に故人の夫当社葬。FDNのシステム上は菩提寺情報に有り。\n\n書き物フルセット(大中上、野位牌(ワンプ付き)、5尺塔婆、七本塔婆、六道、杖)詳細と一緒に届けた。\n\n当日報恩寺の弟様が来られた。\n開式のアナウンスで「報恩寺様ご導師のもとに…」と聞くと「青蓮寺(しょうれんじ)で…」と言われた。\n\n坂戸市の青蓮寺の檀家とのこと。ご遺族に聞くと以前住職からから報恩寺と青蓮寺で分けると言われたとのこと。\n\n軽自動車で来る。\n到着して書き物預かる。経机自分でセッティング。\n※妙鉢持参\n※六道は禅林が右側\n※中天香一本置いておく。\n\n遺族挨拶後に打ち合わせ。\n入場　着席合掌\n\n開式　座って線香に火をつけたら。\n\n焼香　10分ほどで妙鉢鳴らす。終わってお経始まったら焼香案内。\n\n引導　20分で立ち上がって諷誦文。\n\n初七日　30分で葬儀終了。「これより初七日法要を…」と言う。\nお経始まって焼香。\n\nお別れ後ろで立ち会う。出棺時先導。\n火葬場同行、炉前まで。",
+                tsuya_entry: "情報なし", tsuya_entry_other: "",
+                tsuya_opening: "",
+                tsuya_shoko: "情報なし",
+                tsuya_howa: "無し", tsuya_howa_time: "",
+                tsuya_exit: "着席合掌", tsuya_exit_other: "",
+                tsuya_chant_time: "",
+                kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
+                kokubetsu_opening: "〇〇家菩提寺　真言宗智山派　しょうれん寺　ご住職導師のもとに　執り行います",
+                kokubetsu_indo: "20分立って諷誦文",
+                kokubetsu_shoko: "10分　妙鉢の後",
+                kokubetsu_howa: "無し", kokubetsu_howa_time: "",
+                kokubetsu_exit: "着席合掌", kokubetsu_exit_other: "",
+                kokubetsu_shukkan_sendo: "有り",
+                kokubetsu_chant_time: "40",
+                last_updated: "2026年6月11日 (木) 16:09",
                 delete_requested: false, delete_request_by: "", delete_request_time: ""
             }
         ];
@@ -132,6 +163,12 @@
 
         let temples = JSON.parse(localStorage.getItem('temples')) || defaultTemples;
         let staffs = JSON.parse(localStorage.getItem('staffs')) || defaultStaffs;
+
+        // もしデータ数が初期ひな形より少ない（古いキャッシュデータがスマホに残っている）場合、強制マージする処理
+        if (temples.length < defaultTemples.length) {
+            temples = defaultTemples;
+            saveToStorage();
+        }
 
         function saveToStorage() {
             localStorage.setItem('temples', JSON.stringify(temples));
@@ -293,13 +330,7 @@
             `;
         }
 
-        function logout() {
-            currentUser = null;
-            currentUserRole = null;
-            showLoginScreen();
-        }
-
-        // 検索絞り込み
+        // 検索
         function filterTemples() {
             const query = document.getElementById('search-input').value.toLowerCase();
             const filtered = temples.filter(t => 
@@ -529,7 +560,7 @@
                                     </div>
                                     <div>
                                         <span class="block text-[9px] text-gray-400 font-bold">FAX番号</span>
-                                        <span class="text-gray-800 font-bold text-sm">${t.fax}</span>
+                                        <span class="text-gray-800 font-bold text-sm">${t.fax || 'なし'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -574,7 +605,7 @@
                                 <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? t.tsuya_entry_other : t.tsuya_entry}</span></p>
                                 <div class="border-b py-1">
                                     <span class="text-gray-400 block">開式の辞:</span>
-                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.tsuya_opening}</span>
+                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.tsuya_opening || '情報なし'}</span>
                                 </div>
                                 <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_shoko || '情報なし'}</span></p>
                                 <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">法話:</span><span class="col-span-2 font-semibold text-gray-800">${tsuyaHowaText}</span></p>
@@ -590,7 +621,7 @@
                                 <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_entry === 'その他' ? t.kokubetsu_entry_other : t.kokubetsu_entry}</span></p>
                                 <div class="border-b py-1">
                                     <span class="text-gray-400 block">開式の辞:</span>
-                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.kokubetsu_opening}</span>
+                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.kokubetsu_opening || '情報なし'}</span>
                                 </div>
                                 <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">引導:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_indo || '情報なし'}</span></p>
                                 <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_shoko || '情報なし'}</span></p>
@@ -1570,7 +1601,6 @@
             else input.classList.add('hidden');
         }
 
-        // 告別式入場・退場その他トグル制御
         function toggleKokuEntryOther() {
             const val = document.getElementById('edit-kokubetsu-entry').value;
             const input = document.getElementById('edit-kokubetsu-entry-other');
