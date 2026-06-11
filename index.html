@@ -1,3 +1,1965 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>埼玉本社 周辺寺院詳細アプリ (Ver 19.0)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        ruby { ruby-position: over; }
+        rt { font-size: 0.65rem; color: #6b7280; letter-spacing: 0.05em; padding-bottom: 2px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg flex flex-col justify-between">
+
+        <!-- ヘッダー -->
+        <header class="bg-emerald-800 text-white p-4 shadow-md flex justify-between items-center">
+            <h1 class="font-bold text-lg"><i class="fa-solid fa-gopuram mr-2"></i>周辺寺院詳細</h1>
+            <span id="login-status" class="text-xs bg-emerald-900 px-2 py-1 rounded hidden">ログイン中</span>
+        </header>
+
+        <!-- メイン表示エリア -->
+        <main class="flex-grow p-4 overflow-y-auto" id="app-body">
+            <!-- 各画面が動的に表示されます -->
+        </main>
+
+        <footer id="app-footer" class="bg-gray-50 border-t p-3 text-center text-xs text-gray-500 hidden">
+            埼玉本社 周辺寺院詳細アプリ v19.0 (業務運用版)
+        </footer>
+    </div>
+
+    <!-- 画像モーダル -->
+    <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-95 hidden z-50 flex items-center justify-center p-4" onclick="closeImageModal()">
+        <button class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300"><i class="fa-solid fa-xmark"></i></button>
+        <img id="modal-img" class="max-w-full max-h-[85vh] object-contain rounded shadow-lg" src="">
+    </div>
+
+    <script>
+        // 宗派マスタ
+        const sectList = [
+            { name: "天台宗", kana: "テンダイシュウ", has_sub: false },
+            { name: "曹洞宗", kana: "ソウトウシュウ", has_sub: false },
+            { name: "黄檗宗", kana: "オウバクシュウ", has_sub: false },
+            { name: "日蓮宗", kana: "ニチレンシュウ", has_sub: false },
+            { name: "日蓮正宗", kana: "ニチレンショウシュウ", has_sub: false },
+            { name: "浄土宗", kana: "ジョウドシュウ", has_sub: false },
+            { name: "時宗", kana: "ジシュウ", has_sub: false },
+            { name: "浄土真宗（東）", kana: "ジョウドシンシュウヒガシ", has_sub: false },
+            { name: "浄土真宗（西）", kana: "ジョウドシンシュウニシ", has_sub: false },
+            { name: "浄土真宗その他", kana: "ジョウドシンシュウソノタ", has_sub: true, placeholder: "派名（例：高田派）" },
+            { name: "真言宗豊山派", kana: "シンゴンシュウブザンハ", has_sub: false },
+            { name: "真言宗智山派", kana: "シンゴンシュウチサンハ", has_sub: false },
+            { name: "真言宗その他", kana: "シンゴンシュウソノタ", has_sub: true, placeholder: "派名（例：御室派）" },
+            { name: "臨済宗建長寺派", kana: "リンザイシュウケンチョウジハ", has_sub: false },
+            { name: "臨済宗妙心寺派", kana: "リンザイシュウミョウシンジハ", has_sub: false },
+            { name: "臨済宗円覚寺派", kana: "リンザイシュウエンガクジハ", has_sub: false },
+            { name: "臨済宗その他", kana: "リンザイシュウソノタ", has_sub: true, placeholder: "派名" },
+            { name: "法相宗", kana: "ホッソウシュウ", has_sub: false },
+            { name: "華厳宗", kana: "ケゴンシュウ", has_sub: false },
+            { name: "律宗", kana: "リッシュウ", has_sub: false },
+            { name: "単立", kana: "タンリツ", has_sub: true, placeholder: "例：〇〇宗派系単立" },
+            { name: "その他仏教系", kana: "ソノタブッキョウケイ", has_sub: true, placeholder: "仏教系の詳細" },
+            { name: "神道", kana: "シントウ", has_sub: false },
+            { name: "その他神道系", kana: "ソノタシントウケイ", has_sub: true, placeholder: "神道系の詳細" },
+            { name: "創価学会", kana: "ソウカガッカイ", has_sub: false },
+            { name: "ＭＯＡ（東方の光）", kana: "エムオーエートウホウノヒカリ", has_sub: false },
+            { name: "天理教", kana: "テンリキョウ", has_sub: false },
+            { name: "その他新興宗教系", kana: "ソノタシンコウシュウキョウケイ", has_sub: true, placeholder: "新興宗教系の詳細" }
+        ];
+
+        // 初期お寺データ
+        const defaultTemples = [
+            {
+                id: 1,
+                name: "観音寺",
+                kana: "かんのんじ",
+                sect: "真言宗智山派",
+                sect_kana: "シンゴンシュウチサンハ",
+                postal_code: "3500222",
+                address: "埼玉県坂戸市千代田1-2-3",
+                phone: "049-281-0001",
+                fax: "049-281-0002",
+                
+                has_website: "有り",
+                website_url: "https://example.com/kannonji",
+                images: [],
+                
+                has_delivery: "有り",
+                delivery_items: ["大中上位牌", "野位牌", "5尺塔婆"],
+                delivery_other: "中陰表",
+
+                has_pickup: "有り",
+                pickup_details: ["ハイヤー", "タクシー"],
+                pickup_other: "",
+
+                first_seven_days: "式中初七日",
+                first_seven_other: "",
+                crematory_accompany: "有り",
+                crematory_accompany_other: "",
+
+                notes: "・駐車場が狭いため、大型の葬儀の際は乗り合わせを優先的に案内してください。\n・控室のエアコンの効きが悪いので、事前に入れておくこと。\n・お布施袋は黄白の水引、表書きは「御布施」を指定されています。",
+
+                tsuya_entry: "着席合掌", tsuya_entry_other: "",
+                tsuya_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
+                tsuya_shoko: "10分程、木魚から",
+                tsuya_howa: "有り",
+                tsuya_howa_time: "約5分",
+                tsuya_exit: "着席合掌", tsuya_exit_other: "",
+                tsuya_chant_time: "30",
+
+                kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
+                kokubetsu_opening: "〇〇家菩提寺　坂戸山 観音寺　ご住職導師のもとに　執り行います",
+                kokubetsu_indo: "10分程　立って作法",
+                kokubetsu_shoko: "10分程、木魚から",
+                kokubetsu_howa: "無し",
+                kokubetsu_howa_time: "",
+                kokubetsu_exit: "起立合掌", kokubetsu_exit_other: "",
+                kokubetsu_shukkan_sendo: "有り",
+                kokubetsu_chant_time: "40",
+                
+                last_updated: "2026年6月10日 (水) 10:50",
+                delete_requested: false, delete_request_by: "", delete_request_time: ""
+            }
+        ];
+
+        const defaultStaffs = ["saitama-suzuki", "saitama-saito"];
+
+        let temples = JSON.parse(localStorage.getItem('temples')) || defaultTemples;
+        let staffs = JSON.parse(localStorage.getItem('staffs')) || defaultStaffs;
+
+        function saveToStorage() {
+            localStorage.setItem('temples', JSON.stringify(temples));
+        }
+
+        function saveStaffsToStorage() {
+            localStorage.setItem('staffs', JSON.stringify(staffs));
+        }
+
+        function getFormattedNow() {
+            const days = ["日", "月", "火", "水", "木", "金", "土"];
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const day = days[now.getDay()];
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}年${month}月${date}日 (${day}) ${hours}:${minutes}`;
+        }
+
+        let currentUser = null;
+        let currentUserRole = null;
+        let tempImages = [];
+
+        window.onload = function() {
+            showLoginScreen();
+        };
+
+        // 1. ログイン画面
+        function showLoginScreen() {
+            document.getElementById('login-status').classList.add('hidden');
+            document.getElementById('app-footer').classList.add('hidden');
+            const body = document.getElementById('app-body');
+            const savedId = localStorage.getItem('saved_login_id') || "";
+            const savedPw = localStorage.getItem('saved_login_pw') || "";
+
+            body.innerHTML = `
+                <div class="py-8">
+                    <h2 class="text-xl font-bold text-center text-gray-700 mb-6">周辺寺院詳細アプリ ログイン</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">ログインID</label>
+                            <input type="text" id="login-id" class="w-full p-3 border rounded focus:outline-emerald-600 font-mono text-sm bg-white" placeholder="saitama-〇〇" value="${savedId}">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">パスワード</label>
+                            <input type="password" id="login-pw" class="w-full p-3 border rounded focus:outline-emerald-600 font-mono text-sm bg-white" placeholder="••••••••" value="${savedPw}">
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[10px] text-gray-400 pl-1">
+                            <i class="fa-solid fa-square-check text-emerald-700"></i>
+                            <span>ログインに成功すると、次回から自動入力されます。</span>
+                        </div>
+                        <button onclick="handleLogin()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white p-3 rounded-lg font-bold transition shadow-md">
+                            ログインする
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleLogin() {
+            const id = document.getElementById('login-id').value.trim();
+            const pw = document.getElementById('login-pw').value;
+            if (!id || !pw) {
+                alert('IDとパスワードを入力してください。');
+                return;
+            }
+            if (id === 'saitama-arikawa' && pw === 'cosmic20') {
+                currentUser = id;
+                currentUserRole = 'admin';
+                localStorage.setItem('saved_login_id', id);
+                localStorage.setItem('saved_login_pw', pw);
+                document.getElementById('login-status').innerText = `管理者(arikawa)`;
+                document.getElementById('login-status').classList.remove('hidden');
+                document.getElementById('app-footer').classList.remove('hidden');
+                showListScreen();
+                return;
+            }
+            if (staffs.includes(id) && pw === 'sakado0470') {
+                currentUser = id;
+                currentUserRole = 'staff';
+                localStorage.setItem('saved_login_id', id);
+                localStorage.setItem('saved_login_pw', pw);
+                document.getElementById('login-status').innerText = id;
+                document.getElementById('login-status').classList.remove('hidden');
+                document.getElementById('app-footer').classList.remove('hidden');
+                showListScreen();
+                return;
+            }
+            alert('ログインIDまたはパスワードが間違っています。');
+        }
+
+        // 2. 一覧画面
+        function showListScreen() {
+            const body = document.getElementById('app-body');
+            let templeListHTML = '';
+            temples.forEach(t => {
+                const reqBadge = t.delete_requested ? `
+                    <span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-exclamation text-[10px]"></i>削除依頼中
+                    </span>
+                ` : '';
+
+                templeListHTML += `
+                    <div onclick="showDetailScreen(${t.id})" class="p-4 border-b hover:bg-gray-50 cursor-pointer flex justify-between items-center transition">
+                        <div>
+                            <div class="text-[10px] text-emerald-800 font-bold flex items-center gap-2">
+                                <span>${t.sect} (${t.sect_kana})</span>
+                                ${reqBadge}
+                            </div>
+                            <div class="text-base font-bold text-gray-800 mt-0.5">
+                                <ruby>${t.name}<rt>${t.kana}</rt></ruby>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <span class="truncate max-w-[280px]">${t.address}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${t.images && t.images.length > 0 ? `<span class="bg-gray-100 text-gray-600 text-[10px] font-bold px-1.5 py-0.5 rounded"><i class="fa-solid fa-image mr-1"></i>${t.images.length}</span>` : ''}
+                            <i class="fa-solid fa-chevron-right text-gray-300"></i>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const requestCount = temples.filter(x => x.delete_requested).length;
+            const alertBadge = (currentUserRole === 'admin' && requestCount > 0) ? `
+                <span class="bg-red-600 text-white rounded-full text-[9px] px-1.5 py-0.5 font-bold animate-pulse">
+                    削除依頼が来ています (${requestCount}件)
+                </span>
+            ` : '';
+
+            const adminMenuButton = (currentUserRole === 'admin') ? `
+                <button onclick="showAdminMenuScreen()" class="w-full bg-slate-700 hover:bg-slate-800 text-white py-2.5 px-4 rounded-lg font-bold text-xs shadow transition flex items-center justify-between gap-2 mb-2">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-user-gear"></i>⚙ 管理者メニュー</span>
+                    ${alertBadge}
+                </button>
+            ` : '';
+
+            body.innerHTML = `
+                <div class="mb-4">
+                    ${adminMenuButton}
+                    <button onclick="showEditScreen(null)" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3 px-4 rounded-lg font-bold text-sm shadow transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-plus"></i>＋ 新たに寺院を登録する
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <input type="text" id="search-input" onkeyup="filterTemples()" placeholder="🔍 寺院名・宗派で検索..." class="w-full p-3 border rounded shadow-sm focus:outline-emerald-600 text-sm">
+                </div>
+                <div class="flex justify-between text-xs font-bold text-gray-500 mb-4 bg-gray-100 p-2 rounded">
+                    <span id="temple-count">登録寺院: ${temples.length}件</span>
+                    <button onclick="logout()" class="text-red-700 hover:underline"><i class="fa-solid fa-right-from-bracket mr-1"></i>ログアウト</button>
+                </div>
+                <div id="temples-container" class="bg-white rounded-lg shadow border divide-y">
+                    ${templeListHTML}
+                </div>
+            `;
+        }
+
+        // 検索絞り込み
+        function filterTemples() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = temples.filter(t => 
+                t.name.toLowerCase().includes(query) || 
+                t.sect.toLowerCase().includes(query) || 
+                t.sect_kana.toLowerCase().includes(query) || 
+                t.kana.toLowerCase().includes(query)
+            );
+            const container = document.getElementById('temples-container');
+            document.getElementById('temple-count').innerText = `登録寺院: ${filtered.length}件`;
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">該当する寺院が見つかりません</div>';
+                return;
+            }
+            let html = '';
+            filtered.forEach(t => {
+                const reqBadge = t.delete_requested ? `
+                    <span class="bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-exclamation text-[10px]"></i>削除依頼中
+                    </span>
+                ` : '';
+
+                html += `
+                    <div onclick="showDetailScreen(${t.id})" class="p-4 border-b hover:bg-gray-50 cursor-pointer flex justify-between items-center transition">
+                        <div>
+                            <div class="text-[10px] text-emerald-800 font-bold flex items-center gap-2">
+                                <span>${t.sect} (${t.sect_kana})</span>
+                                ${reqBadge}
+                            </div>
+                            <div class="text-base font-bold text-gray-800 mt-0.5">
+                                <ruby>${t.name}<rt>${t.kana}</rt></ruby>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <span class="truncate max-w-[280px]">${t.address}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${t.images && t.images.length > 0 ? `<span class="bg-gray-100 text-gray-600 text-[10px] font-bold px-1.5 py-0.5 rounded"><i class="fa-solid fa-image mr-1"></i>${t.images.length}</span>` : ''}
+                            <i class="fa-solid fa-chevron-right text-gray-300"></i>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // 3. 詳細画面（★スマホの縦幅削減のため、タブUIに完全リニューアルしました）
+        function showDetailScreen(id) {
+            const t = temples.find(item => item.id === id);
+            const body = document.getElementById('app-body');
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.address)}`;
+
+            // 有り・無しボタン作成関数
+            const makeToggleButtons = (activeValue, btn1Label, btn2Label) => {
+                const btn1Active = activeValue === btn1Label;
+                const activeClass = "bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow text-[10px]";
+                const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-3 py-1 rounded text-[10px] cursor-default";
+                return `
+                    <div class="flex gap-1.5">
+                        <span class="${btn1Active ? activeClass : inactiveClass}">${btn1Label}</span>
+                        <span class="${!btn1Active ? activeClass : inactiveClass}">${btn2Label}</span>
+                    </div>
+                `;
+            };
+
+            // 書き物詳細テキスト
+            let deliveryDetailsText = '';
+            if (t.has_delivery === '有り') {
+                const itemsList = t.delivery_items && t.delivery_items.length > 0 ? t.delivery_items.join(', ') : 'なし';
+                const otherText = t.delivery_other ? ` (その他: ${t.delivery_other})` : '';
+                deliveryDetailsText = `<div class="text-emerald-900 font-semibold bg-emerald-50 border border-emerald-200 rounded p-2 mt-1.5">
+                    <span class="block text-[10px] font-bold text-emerald-800 mb-0.5">書き物詳細:</span>
+                    ${itemsList}${otherText}
+                </div>`;
+            }
+
+            // 送迎詳細ボタン
+            let pickupDetailButtonsHTML = '';
+            if (t.has_pickup === '有り') {
+                const options = ["ハイヤー", "タクシー", "どちらでも可", "不明", "その他"];
+                pickupDetailButtonsHTML = `
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        ${options.map(opt => {
+                            const isSelected = t.pickup_details && t.pickup_details.includes(opt);
+                            let label = opt;
+                            if (opt === 'その他' && t.pickup_other) {
+                                label = `その他（${t.pickup_other}）`;
+                            }
+                            const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                            return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
+                        }).join('')}
+                    </div>
+                `;
+            } else {
+                const options = ["自家用車", "電車その他", "その他"];
+                pickupDetailButtonsHTML = `
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        ${options.map(opt => {
+                            const isSelected = (t.pickup_details && t.pickup_details.includes(opt)) || t.pickup_detail === opt;
+                            let label = opt;
+                            if (opt === 'その他' && t.pickup_other) {
+                                label = `その他（${t.pickup_other}）`;
+                            }
+                            const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                            const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                            return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            // 火葬同行ボタン
+            const cre_options = ["有り", "無し", "不明", "その他"];
+            const selectedCre = t.crematory_accompany || "不明";
+            let creDetailButtonsHTML = `
+                <div class="flex flex-wrap gap-1 mt-1">
+                    ${cre_options.map(opt => {
+                        const isSelected = selectedCre === opt;
+                        let label = opt;
+                        if (opt === 'その他' && t.crematory_accompany_other) {
+                            label = `その他（${t.crematory_accompany_other}）`;
+                        }
+                        const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                        return `<span class="${isSelected ? activeClass : inactiveClass}">${label}</span>`;
+                    }).join('')}
+                </div>
+            `;
+
+            // 出棺先導ボタン
+            const sendo_options = ["有り", "無し", "不明"];
+            const selectedSendo = t.kokubetsu_shukkan_sendo || "不明";
+            let sendoDetailButtonsHTML = `
+                <div class="flex gap-1 mt-1">
+                    ${sendo_options.map(opt => {
+                        const isSelected = selectedSendo === opt;
+                        const activeClass = "bg-emerald-700 text-white font-bold px-2 py-0.5 rounded shadow text-[10px]";
+                        const inactiveClass = "bg-gray-200 text-gray-400 font-bold px-2 py-0.5 rounded text-[10px] cursor-default";
+                        return `<span class="${isSelected ? activeClass : inactiveClass}">${opt}</span>`;
+                    }).join('')}
+                </div>
+            `;
+
+            // 参考画像スライド
+            let imagesHTML = '';
+            if (t.images && t.images.length > 0) {
+                imagesHTML = `
+                    <div class="mt-3 bg-gray-50 p-2.5 rounded-lg border">
+                        <span class="block text-[10px] font-bold text-gray-500 mb-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-image text-emerald-800"></i>参考画像 (${t.images.length}/10枚) ※タップで拡大
+                        </span>
+                        <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth snap-x">
+                            ${t.images.map(img => `
+                                <div class="flex-shrink-0 snap-start">
+                                    <img src="${img}" onclick="openImageModal('${img}')" class="w-16 h-16 object-cover rounded border shadow-sm cursor-pointer hover:opacity-90 transition">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                imagesHTML = `
+                    <div class="mt-3 p-4 border border-dashed rounded-lg text-center text-gray-400 text-xs">
+                        登録されている参考画像はありません。
+                    </div>
+                `;
+            }
+
+            let tsuyaHowaText = t.tsuya_howa === '有り' ? `有り（時間: ${t.tsuya_howa_time || '未指定'}）` : '無し';
+            let kokubetsuHowaText = t.kokubetsu_howa === '有り' ? `有り（時間: ${t.kokubetsu_howa_time || '未指定'}）` : '無し';
+
+            let tsuyaChantText = t.tsuya_chant_time ? `約 ${t.tsuya_chant_time} 分` : '情報なし';
+            let kokubetsuChantText = t.kokubetsu_chant_time ? `約 ${t.kokubetsu_chant_time} 分` : '情報なし';
+
+            const deleteRequestBannerHTML = t.delete_requested ? `
+                <div class="bg-amber-100 border border-amber-300 rounded-lg p-3 text-xs text-amber-900 space-y-1 my-2">
+                    <p class="font-bold flex items-center gap-1 text-amber-900">
+                        <i class="fa-solid fa-circle-exclamation text-[13px]"></i>現在、この寺院は削除依頼が送信されています。
+                    </p>
+                    <p>・依頼スタッフ: <span class="font-bold">${t.delete_request_by}</span></p>
+                    <p>・依頼日時: <span class="font-bold">${t.delete_request_time}</span></p>
+                </div>
+            ` : '';
+
+            // 画面の構築 (ヘッダー情報とタブバー、そして各タブコンテンツエリア)
+            body.innerHTML = `
+                <button onclick="showListScreen()" class="mb-3 text-emerald-800 font-bold flex items-center gap-1 hover:underline text-sm">
+                    <i class="fa-solid fa-arrow-left"></i> 一覧に戻る
+                </button>
+
+                <div class="bg-white rounded-lg border shadow-sm overflow-hidden">
+                    
+                    <!-- ① 常に上部に固定表示するお寺名と更新スタンプ -->
+                    <div class="p-4 bg-emerald-50 border-b">
+                        <div class="text-[9px] text-gray-400 font-bold flex items-center gap-1 mb-1">
+                            <i class="fa-solid fa-clock"></i>
+                            <span>最終更新: ${t.last_updated || '記録なし'}</span>
+                        </div>
+                        <span class="text-[9px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-bold">${t.sect} (${t.sect_kana})</span>
+                        <h2 class="text-xl font-bold text-gray-800 mt-1">
+                            <ruby>${t.name}<rt>${t.kana}</rt></ruby>
+                        </h2>
+                    </div>
+
+                    ${deleteRequestBannerHTML}
+
+                    <!-- ② ★スマートフォンの縦幅を節約する「タブ選択バー」 -->
+                    <div class="flex border-b text-[11px] font-bold text-gray-400 bg-gray-50 select-none">
+                        <button onclick="switchTab('basic')" id="btn-tab-basic" class="flex-1 py-3 text-center border-b-2 border-emerald-700 text-emerald-800 transition">基本・画像</button>
+                        <button onclick="switchTab('delivery')" id="btn-tab-delivery" class="flex-1 py-3 text-center border-b-2 border-transparent transition">届け・送迎</button>
+                        <button onclick="switchTab('ceremony')" id="btn-tab-ceremony" class="flex-1 py-3 text-center border-b-2 border-transparent transition">式進行</button>
+                        <button onclick="switchTab('notes')" id="btn-tab-notes" class="flex-1 py-3 text-center border-b-2 border-transparent transition">注意事項</button>
+                    </div>
+
+                    <!-- ③ 各タブの中身 (hiddenで出し分け) -->
+                    <div class="p-4 space-y-4">
+                        
+                        <!-- タブA: 基本情報・参考画像 -->
+                        <div id="tab-content-basic" class="space-y-3">
+                            <div class="text-xs space-y-2">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="block text-[9px] text-gray-400 font-bold">住所</span>
+                                        <span class="text-gray-700 font-medium">〒${t.postal_code} <br>${t.address}</span>
+                                    </div>
+                                    <a href="${mapUrl}" target="_blank" class="bg-blue-50 text-blue-600 border border-blue-200 px-2.5 py-1.5 rounded font-bold hover:bg-blue-100 transition flex items-center gap-1 text-[10px] whitespace-nowrap shadow-sm">
+                                        <i class="fa-solid fa-map-location-dot"></i>地図
+                                    </a>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 border-t pt-2">
+                                    <div>
+                                        <span class="block text-[9px] text-gray-400 font-bold">電話番号</span>
+                                        <span class="text-gray-800 font-bold text-sm">${t.phone}</span>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[9px] text-gray-400 font-bold">FAX番号</span>
+                                        <span class="text-gray-800 font-bold text-sm">${t.fax}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 参考画像表示 -->
+                            ${imagesHTML}
+                        </div>
+
+                        <!-- タブB: 届け・送迎 -->
+                        <div id="tab-content-delivery" class="space-y-3 hidden">
+                            <div class="bg-gray-50 border rounded-lg p-3 space-y-3 text-xs shadow-inner">
+                                <div class="flex justify-between items-center border-b pb-1.5">
+                                    <span class="font-bold text-gray-600">書き物届け</span>
+                                    ${makeToggleButtons(t.has_delivery, '有り', '無し')}
+                                </div>
+                                ${deliveryDetailsText}
+
+                                <div class="flex justify-between items-center border-b pb-1.5">
+                                    <span class="font-bold text-gray-600">送迎の有無</span>
+                                    ${makeToggleButtons(t.has_pickup, '有り', '無し')}
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-gray-400 block font-semibold mb-0.5">送迎詳細</span>
+                                    ${pickupDetailButtonsHTML}
+                                </div>
+
+                                <div class="border-t pt-2 flex justify-between items-center">
+                                    <span class="font-bold text-gray-600">初七日法要</span>
+                                    <span class="font-bold text-gray-800 text-right">${t.first_seven_days === 'その他' ? t.first_seven_other : t.first_seven_days}</span>
+                                </div>
+
+                                <div class="border-t pt-2">
+                                    <span class="text-[10px] text-gray-400 block font-semibold mb-1">火葬場への同行</span>
+                                    ${creDetailButtonsHTML}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- タブC: 式進行 -->
+                        <div id="tab-content-ceremony" class="space-y-3 hidden">
+                            <!-- 通夜進行 -->
+                            <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs shadow-inner">
+                                <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
+                                    <span>【通夜の進行】</span>
+                                    <i class="fa-solid fa-moon"></i>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_entry === 'その他' ? t.tsuya_entry_other : t.tsuya_entry}</span></p>
+                                <div class="border-b py-1">
+                                    <span class="text-gray-400 block">開式の辞:</span>
+                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.tsuya_opening}</span>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_shoko || '情報なし'}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">法話:</span><span class="col-span-2 font-semibold text-gray-800">${tsuyaHowaText}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">退場:</span><span class="col-span-2 font-semibold text-gray-800">${t.tsuya_exit === 'その他' ? t.tsuya_exit_other : t.tsuya_exit}</span></p>
+                                <p class="grid grid-cols-3 py-1 font-bold"><span class="text-gray-500">読経時間:</span><span class="col-span-2 text-emerald-800">${tsuyaChantText}</span></p>
+                            </div>
+
+                            <!-- 告別式進行 -->
+                            <div class="border rounded-lg p-3 space-y-2 bg-slate-50 text-xs shadow-inner">
+                                <div class="font-bold text-emerald-800 border-b pb-1 flex justify-between items-center">
+                                    <span>【告別式の進行】</span>
+                                    <i class="fa-solid fa-sun"></i>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">入場時:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_entry === 'その他' ? t.kokubetsu_entry_other : t.kokubetsu_entry}</span></p>
+                                <div class="border-b py-1">
+                                    <span class="text-gray-400 block">開式の辞:</span>
+                                    <span class="font-semibold text-gray-800 block mt-0.5 whitespace-pre-wrap">${t.kokubetsu_opening}</span>
+                                </div>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">引導:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_indo || '情報なし'}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">焼香:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_shoko || '情報なし'}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">法話:</span><span class="col-span-2 font-semibold text-gray-800">${kokubetsuHowaText}</span></p>
+                                <p class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">退場:</span><span class="col-span-2 font-semibold text-gray-800">${t.kokubetsu_exit === 'その他' ? t.kokubetsu_exit_other : t.kokubetsu_exit}</span></p>
+                                <div class="grid grid-cols-3 border-b py-1"><span class="text-gray-400">出棺先導:</span><div class="col-span-2">${sendoDetailButtonsHTML}</div></div>
+                                <p class="grid grid-cols-3 py-1 font-bold"><span class="text-gray-500">読経時間:</span><span class="col-span-2 text-emerald-800">${kokubetsuChantText}</span></p>
+                            </div>
+                        </div>
+
+                        <!-- タブD: 注意事項 -->
+                        <div id="tab-content-notes" class="space-y-3 hidden">
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs min-h-[150px] shadow-inner">
+                                <span class="block text-[10px] text-amber-800 font-bold mb-1"><i class="fa-solid fa-circle-exclamation mr-1"></i>注意事項</span>
+                                <p class="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm font-semibold">${t.notes || '注意事項は登録されていません'}</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- ④【管理者に伝える】ボタンエリア (タブの切り替えに関わらず最下部に配置して押しやすく) -->
+                    <div class="p-4 border-t bg-gray-50 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-[10px] text-blue-900 flex items-center gap-1"><i class="fa-solid fa-paper-plane"></i>この情報を管理者に伝える</span>
+                            <span class="text-[9px] text-gray-400">※全員に情報を自動同期するため</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="shareViaLine(${t.id})" class="flex-grow bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-1 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-brands fa-line text-sm"></i>LINE
+                            </button>
+                            <button onclick="shareViaEmail(${t.id})" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-1 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-solid fa-envelope text-sm"></i>メール
+                            </button>
+                            <button onclick="copyToClipboard(${t.id})" class="flex-grow bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-1 rounded-lg text-[10px] flex items-center justify-center gap-1 transition shadow-sm">
+                                <i class="fa-solid fa-copy text-sm"></i>コピー
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ⑤ ボタン関係 (公式HP、電話、編集) -->
+                    <div class="p-4 bg-white border-t space-y-3">
+                        <div class="flex gap-3">
+                            ${t.has_website === '有り' && t.website_url ? `
+                                <a href="${t.website_url}" target="_blank" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold text-center shadow transition flex items-center justify-center gap-2 text-xs">
+                                    <i class="fa-solid fa-globe"></i>公式ホームページ
+                                </a>
+                            ` : `
+                                <button disabled class="flex-1 bg-gray-200 text-gray-400 p-3 rounded-lg font-bold text-center cursor-not-allowed flex items-center justify-center gap-2 text-xs">
+                                    <i class="fa-solid fa-globe-slash"></i>公式HPなし
+                                </button>
+                            `}
+                            <a href="tel:${t.phone}" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white p-3 rounded-lg font-bold text-center shadow transition flex items-center justify-center gap-2 text-xs">
+                                <i class="fa-solid fa-phone"></i>お寺へ電話
+                            </a>
+                        </div>
+
+                        <button onclick="showEditScreen(${t.id})" class="w-full bg-white hover:bg-gray-50 text-gray-500 border p-2 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-pen-to-square"></i>お寺の情報を更新・編集する
+                        </button>
+                    </div>
+
+                </div>
+            `;
+        }
+
+        // --- ★タブ切り替え用のJavascriptロジック（新規追加） ---
+        function switchTab(tabId) {
+            const tabs = ['basic', 'delivery', 'ceremony', 'notes'];
+            
+            // すべてのコンテンツを非表示に
+            tabs.forEach(t => {
+                document.getElementById(`tab-content-${t}`).classList.add('hidden');
+                
+                // ボタンの境界線と文字色をリセット
+                const btn = document.getElementById(`btn-tab-${t}`);
+                btn.className = "flex-1 py-3 text-center border-b-2 border-transparent transition";
+            });
+
+            // 選択されたタブのみを表示・強調
+            document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-tab-${tabId}`);
+            activeBtn.className = "flex-1 py-3 text-center border-b-2 border-emerald-700 text-emerald-800 font-bold transition";
+        }
+
+        // --- 「管理者に伝える」メッセージのテキスト自動生成ロジック ---
+        function generateShareText(t) {
+            let text = `【周辺寺院アプリ 修正・登録情報】\n`;
+            text += `■ 寺院名: ${t.name} (${t.kana})\n`;
+            text += `■ 宗派: ${t.sect} (${t.sect_kana})\n`;
+            text += `■ 住所: 〒${t.postal_code} ${t.address}\n`;
+            text += `■ 電話: ${t.phone} / FAX: ${t.fax}\n`;
+            text += `■ 公式ホームページ: ${t.has_website === '有り' ? t.website_url : '無し'}\n`;
+            text += `■ 書き物届け: ${t.has_delivery === '有り' ? t.delivery_items.join(', ') + ' / ' + t.delivery_other : '無し'}\n`;
+            text += `■ お迎え送迎: ${t.has_pickup === '有り' ? '有り（' + t.pickup_details.join(', ') + '）' : '無し（' + t.pickup_details.join(', ') + '）'}\n`;
+            if (t.pickup_other) text += `  (送迎その他: ${t.pickup_other})\n`;
+            text += `■ 初七日法要: ${t.first_seven_days === 'その他' ? t.first_seven_other : t.first_seven_days}\n`;
+            text += `■ 火葬場への同行: ${t.crematory_accompany === 'その他' ? t.crematory_accompany_other : t.crematory_accompany}\n`;
+            text += `■ 注意事項: ${t.notes || 'なし'}\n\n`;
+            
+            text += `【通夜の進行】\n`;
+            text += `・入場時: ${t.tsuya_entry === 'その他' ? t.tsuya_entry_other : t.tsuya_entry}\n`;
+            text += `・開式の辞: ${t.tsuya_opening}\n`;
+            text += `・焼香: ${t.tsuya_shoko || '情報なし'}\n`;
+            text += `・法話: ${t.tsuya_howa === '有り' ? t.tsuya_howa_time : '無し'}\n`;
+            text += `・退場: ${t.tsuya_exit === 'その他' ? t.tsuya_exit_other : t.tsuya_exit}\n`;
+            text += `・全体の読経時間: ${t.tsuya_chant_time ? '約 ' + t.tsuya_chant_time + ' 分' : '情報なし'}\n\n`;
+            
+            text += `【告別式の進行】\n`;
+            text += `・入場時: ${t.kokubetsu_entry === 'その他' ? t.kokubetsu_entry_other : t.kokubetsu_entry}\n`;
+            text += `・開式の辞: ${t.kokubetsu_opening}\n`;
+            text += `・引導: ${t.kokubetsu_indo || '情報なし'}\n`;
+            text += `・焼香: ${t.kokubetsu_shoko || '情報なし'}\n`;
+            text += `・法話: ${t.kokubetsu_howa === '有り' ? t.kokubetsu_howa_time : '無し'}\n`;
+            text += `・退場: ${t.kokubetsu_exit === 'その他' ? t.kokubetsu_exit_other : t.kokubetsu_exit}\n`;
+            text += `・出棺先導: ${t.kokubetsu_shukkan_sendo || '不明'}\n`;
+            text += `・全体の読経時間: ${t.kokubetsu_chant_time ? '約 ' + t.kokubetsu_chant_time + ' 分' : '情報なし'}\n\n`;
+            
+            text += `最終更新日時: ${t.last_updated} (更新スタッフ: ${currentUser || '不明'})`;
+            return text;
+        }
+
+        function shareViaLine(id) {
+            const t = temples.find(item => item.id === id);
+            const msg = generateShareText(t);
+            const lineUrl = `https://line.me/R/share?text=${encodeURIComponent(msg)}`;
+            window.open(lineUrl, '_blank');
+        }
+
+        function shareViaEmail(id) {
+            const t = temples.find(item => item.id === id);
+            const msg = generateShareText(t);
+            const subject = encodeURIComponent(`【寺院情報更新】${t.name}`);
+            const body = encodeURIComponent(msg);
+            const mailUrl = `mailto:?subject=${subject}&body=${body}`;
+            window.location.href = mailUrl;
+        }
+
+        function copyToClipboard(id) {
+            const t = temples.find(item => item.id === id);
+            const msg = generateShareText(t);
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(msg).then(() => {
+                    alert('コピー完了しました！LINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
+                }).catch(err => {
+                    console.error('Clipboard error:', err);
+                    fallbackCopyText(msg);
+                });
+            } else {
+                fallbackCopyText(msg);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('コピー完了しました！LINE Worksや社内チャット等にそのまま貼り付けて送信してください。');
+            } catch (err) {
+                alert('自動コピーに失敗しました。お手数ですが、テキストを選択してコピーしてください。');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // 4. 登録・編集
+        let edit_has_pickup = "";
+        let edit_pickup_details = [];
+        let isEditMode = false;
+        
+        let edit_has_website = "無し";
+        let edit_tsuya_howa = "無し";
+        let edit_kokubetsu_howa = "無し";
+
+        let edit_crematory_accompany = "不明";
+        let edit_kokubetsu_shukkan_sendo = "不明";
+
+        function showEditScreen(id) {
+            const body = document.getElementById('app-body');
+            let t = {};
+
+            if (id !== null) {
+                isEditMode = true;
+                t = temples.find(item => item.id === id);
+                tempImages = [...(t.images || [])];
+                edit_has_website = t.has_website || (t.website_url ? "有り" : "無し");
+                edit_tsuya_howa = t.tsuya_howa || "無し";
+                edit_kokubetsu_howa = t.kokubetsu_howa || "無し";
+                edit_crematory_accompany = t.crematory_accompany || "不明";
+                edit_kokubetsu_shukkan_sendo = t.kokubetsu_shukkan_sendo || "不明";
+            } else {
+                isEditMode = false;
+                tempImages = [];
+                edit_has_website = "無し";
+                edit_tsuya_howa = "無し";
+                edit_kokubetsu_howa = "無し";
+                edit_crematory_accompany = "不明";
+                edit_kokubetsu_shukkan_sendo = "不明";
+                t = {
+                    id: "", name: "", kana: "", sect: "", sect_kana: "", postal_code: "", address: "", phone: "", fax: "",
+                    has_website: "無し", website_url: "",
+                    has_delivery: "無し", delivery_items: [], delivery_other: "",
+                    has_pickup: "無し", pickup_details: ["自家用車"], pickup_other: "",
+                    first_seven_days: "式中初七日", first_seven_other: "",
+                    crematory_accompany: "不明", crematory_accompany_other: "",
+                    notes: "",
+                    tsuya_entry: "着席合掌", tsuya_entry_other: "",
+                    tsuya_opening: "〇〇家菩提寺　〇〇寺　ご住職導師のもとに　執り行います",
+                    tsuya_shoko: "", tsuya_howa: "無し", tsuya_howa_time: "", tsuya_exit: "着席合掌", tsuya_exit_other: "",
+                    tsuya_chant_time: "",
+                    kokubetsu_entry: "着席合掌", kokubetsu_entry_other: "",
+                    kokubetsu_opening: "〇〇家菩提寺　〇〇寺　ご住職導師のもとに　執り行います",
+                    kokubetsu_indo: "", kokubetsu_shoko: "", kokubetsu_howa: "無し", kokubetsu_howa_time: "", kokubetsu_exit: "起立合掌", kokubetsu_exit_other: "",
+                    kokubetsu_shukkan_sendo: "不明",
+                    kokubetsu_chant_time: "",
+                    last_updated: ""
+                };
+            }
+
+            edit_has_pickup = t.has_pickup;
+            if (Array.isArray(t.pickup_details)) {
+                edit_pickup_details = [...t.pickup_details];
+            } else {
+                edit_pickup_details = t.pickup_detail ? [t.pickup_detail] : [];
+            }
+
+            const itemsList = ["大中上位牌", "野位牌", "5尺塔婆", "6尺塔婆", "七本塔婆", "杖", "六道"];
+            let checkboxesHTML = '';
+            itemsList.forEach(item => {
+                const checked = t.delivery_items && t.delivery_items.includes(item) ? 'checked' : '';
+                checkboxesHTML += `
+                    <label class="inline-flex items-center bg-gray-50 p-2 border rounded cursor-pointer">
+                        <input type="checkbox" name="edit-items" value="${item}" ${checked} class="text-emerald-700">
+                        <span class="ml-1.5 text-xs">${item}</span>
+                    </label>
+                `;
+            });
+
+            const deleteButtonHTML = isEditMode ? `
+                <div class="border-t pt-4 mt-6">
+                    <button type="button" onclick="requestOrDeleteTemple(${t.id})" class="w-full bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 p-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 text-sm">
+                        <i class="fa-solid fa-trash-can"></i>この寺院の情報を削除する
+                    </button>
+                </div>
+            ` : '';
+
+            let selectedSectName = "";
+            let subSectVal = "";
+            if (t.sect) {
+                const match = t.sect.match(/^([^\（\(]+)[\（\(]([^\）\)]+)[\）\)]$/);
+                if (match) {
+                    selectedSectName = match[1];
+                    subSectVal = match[2];
+                } else {
+                    selectedSectName = t.sect;
+                }
+            }
+
+            let sectOptionsHTML = '<option value="">-- 宗派を選択してください --</option>';
+            sectList.forEach(s => {
+                const isSelected = selectedSectName === s.name ? 'selected' : '';
+                sectOptionsHTML += `<option value="${s.name}" ${isSelected}>${s.name}</option>`;
+            });
+
+            body.innerHTML = `
+                <button onclick="${isEditMode ? 'showDetailScreen(' + t.id + ')' : 'showListScreen()'}" class="mb-4 text-emerald-800 font-bold flex items-center gap-1 hover:underline text-sm">
+                    <i class="fa-solid fa-xmark"></i> ${isEditMode ? '編集をキャンセル' : '一覧へ戻る'}
+                </button>
+
+                <div class="bg-white rounded-lg border p-4 space-y-4 text-xs">
+                    <h3 class="text-sm font-bold text-gray-700 border-b pb-2">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i>${isEditMode ? '情報更新 (' + t.name + ')' : '新規寺院登録'}
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        
+                        <!-- 基本情報 -->
+                        <div class="space-y-2">
+                            <h4 class="font-bold text-emerald-800 border-b pb-1">基本情報</h4>
+                            
+                            <div>
+                                <label class="block text-gray-500 font-bold mb-0.5">寺院名ふりがな</label>
+                                <input type="text" id="edit-kana" class="w-full p-2 border rounded bg-white" value="${t.kana}" placeholder="例: かんのんじ">
+                            </div>
+                            <div>
+                                <label class="block text-gray-500 font-bold mb-0.5">寺院名</label>
+                                <input type="text" id="edit-name" class="w-full p-2 border rounded bg-white text-sm font-semibold" value="${t.name}" placeholder="例: 観音寺">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-gray-500 font-bold mb-0.5">宗派選択</label>
+                                    <select id="edit-sect-select" onchange="onSectSelectChange()" class="w-full p-2 border rounded bg-white text-[11px] font-semibold focus:outline-emerald-600">
+                                        ${sectOptionsHTML}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-500 font-bold mb-0.5">宗派ふりがな（自動入力）</label>
+                                    <input type="text" id="edit-sect-kana" class="w-full p-2 border rounded bg-gray-50 font-mono text-[10px]" value="${t.sect_kana}" placeholder="自動で入力されます" readonly>
+                                </div>
+                            </div>
+
+                            <div id="sect-sub-input-area" class="hidden bg-gray-50 border rounded p-2 mt-1">
+                                <label id="sect-sub-label" class="block text-emerald-800 font-bold mb-1">詳細の入力</label>
+                                <input type="text" id="edit-sect-sub-input" class="w-full p-2 border rounded bg-white text-[11px]" value="${subSectVal}" placeholder="">
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="col-span-1">
+                                    <label class="block text-gray-500 font-bold mb-0.5">
+                                        郵便番号 <span class="text-red-600 text-[8px] font-bold block">※ハイフン無し</span>
+                                    </label>
+                                    <div class="flex gap-1">
+                                        <input type="text" id="edit-postal" class="w-full p-2 border rounded bg-white font-mono text-xs" value="${t.postal_code}" placeholder="3500222">
+                                        <button type="button" onclick="searchAddressByZip()" class="bg-blue-50 text-blue-600 border border-blue-200 px-2 rounded font-bold hover:bg-blue-100 transition text-[10px] whitespace-nowrap">検索</button>
+                                    </div>
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-gray-500 font-bold mb-0.5">住所</label>
+                                    <input type="text" id="edit-address" class="w-full p-2 border rounded bg-white text-xs font-semibold" value="${t.address}" placeholder="埼玉県坂戸市〇〇">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-gray-500 font-bold mb-0.5">電話番号</label>
+                                    <input type="text" id="edit-phone" class="w-full p-2 border rounded bg-white" value="${t.phone}" placeholder="049-281-0001">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-500 font-bold mb-0.5">FAX番号</label>
+                                    <input type="text" id="edit-fax" class="w-full p-2 border rounded bg-white" value="${t.fax}" placeholder="049-281-0002">
+                                </div>
+                            </div>
+
+                            <!-- 公式ホームページの有無 -->
+                            <div class="space-y-1 pt-1">
+                                <label class="block font-bold text-gray-600">公式ホームページの有無</label>
+                                <div class="flex gap-2">
+                                    <button type="button" id="btn-web-yes" onclick="setEditWebHas('有り')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                    <button type="button" id="btn-web-no" onclick="setEditWebHas('無し')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                </div>
+                                <div id="web-url-input-area" class="hidden pt-1">
+                                    <label class="block text-gray-500 font-semibold mb-0.5">公式HPのURL</label>
+                                    <input type="text" id="edit-url" class="w-full p-2 border rounded bg-white" value="${t.website_url}" placeholder="https://example.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 参考画像添付 -->
+                        <div class="space-y-2 border-t pt-3">
+                            <h4 class="font-bold text-emerald-800 border-b pb-1">参考画像 (最大10枚まで)</h4>
+                            <div class="flex items-center gap-3">
+                                <button type="button" onclick="triggerFileInput()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg font-bold flex items-center gap-1 shadow-sm transition">
+                                    <i class="fa-solid fa-camera"></i>写真を追加する
+                                </button>
+                                <span id="img-counter" class="text-gray-500 text-xs font-semibold">現在: 0/10枚</span>
+                                <input type="file" id="file-input" accept="image/*" multiple class="hidden" onchange="handleFileSelect(event)">
+                            </div>
+                            <div id="image-previews" class="flex flex-wrap gap-2 pt-2"></div>
+                        </div>
+
+                        <!-- 1. 書き物届けの有無 -->
+                        <div class="space-y-1 border-t pt-3">
+                            <label class="block font-bold text-gray-600">書き物届けの有無</label>
+                            <div class="flex gap-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="edit-delivery" value="有り" ${t.has_delivery === '有り' ? 'checked' : ''} onclick="toggleDeliveryItems(true)" class="text-emerald-700">
+                                    <span class="ml-2">有り</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="edit-delivery" value="無し" ${t.has_delivery === '無し' ? 'checked' : ''} onclick="toggleDeliveryItems(false)" class="text-emerald-700">
+                                    <span class="ml-2">無し</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 書き物詳細 -->
+                        <div id="delivery-items-area" class="${t.has_delivery === '無し' ? 'hidden' : ''} bg-gray-50 p-3 rounded border space-y-2">
+                            <label class="block font-bold text-gray-500">書き物の種類（複数選択可）</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                ${checkboxesHTML}
+                            </div>
+                            <div>
+                                <label class="block text-gray-500 mb-1">その他（自由入力）</label>
+                                <input type="text" id="edit-delivery-other" class="w-full p-2 border rounded bg-white" value="${t.delivery_other || ''}" placeholder="例: 中陰表など">
+                            </div>
+                        </div>
+
+                        <!-- 2. 送迎の有無 -->
+                        <div class="space-y-1.5">
+                            <label class="block font-bold text-gray-600">送迎の有無</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-pickup-yes" onclick="setEditPickupHas('有り')" class="flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                <button type="button" id="btn-pickup-no" onclick="setEditPickupHas('無し')" class="flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                            </div>
+                        </div>
+
+                        <!-- 送迎詳細 -->
+                        <div id="pickup-options-container" class="bg-gray-50 p-3 rounded-lg border space-y-2">
+                            <label class="block font-bold text-gray-500">お迎え詳細の選択 (複数タップして選択可能)</label>
+                            
+                            <div id="pickup-choices-yes" class="flex flex-wrap gap-1.5">
+                                <button type="button" onclick="toggleEditPickupDetail('ハイヤー')" id="opt-ハイヤー" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                                <button type="button" onclick="toggleEditPickupDetail('タクシー')" id="opt-タクシー" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                                <button type="button" onclick="toggleEditPickupDetail('どちらでも可')" id="opt-どちらでも可" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                                <button type="button" onclick="toggleEditPickupDetail('不明')" id="opt-不明" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                                <button type="button" onclick="toggleEditPickupDetail('その他')" id="opt-その他-yes" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                            </div>
+
+                            <div id="pickup-choices-no" class="flex flex-wrap gap-1.5">
+                                <button type="button" onclick="toggleEditPickupDetail('自家用車')" id="opt-自家用車" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                                <button type="button" onclick="toggleEditPickupDetail('電車その他')" id="opt-電車その他" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                                <button type="button" onclick="toggleEditPickupDetail('その他')" id="opt-その他-no" class="py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition"></button>
+                            </div>
+
+                            <div id="pickup-other-input-area" class="hidden mt-2 pt-2 border-t">
+                                <label class="block text-gray-500 mb-1">その他の送迎詳細（自由入力）</label>
+                                <input type="text" id="edit-pickup-other" class="w-full p-2 border rounded bg-white" value="${t.pickup_other || ''}" placeholder="例: 住職が手配など">
+                            </div>
+                        </div>
+
+                        <!-- 3. 初七日法要 -->
+                        <div>
+                            <label class="block font-bold text-gray-600 mb-1">初七日法要</label>
+                            <select id="edit-first-seven" onchange="toggleFirstSevenOther()" class="w-full p-2 border rounded bg-white">
+                                <option value="式中初七日" ${t.first_seven_days === '式中初七日' ? 'selected' : ''}>式中初七日</option>
+                                <option value="戻り初七日" ${t.first_seven_days === '戻り初七日' ? 'selected' : ''}>戻り初七日</option>
+                                <option value="どちらでも可" ${t.first_seven_days === 'どちらでも可' ? 'selected' : ''}>どちらでも可</option>
+                                <option value="その他" ${t.first_seven_days === 'その他' ? 'selected' : ''}>その他</option>
+                            </select>
+                            <div id="first-seven-other-area" class="${t.first_seven_days !== 'その他' ? 'hidden' : ''} mt-2">
+                                <input type="text" id="edit-first-seven-other" class="w-full p-2 border rounded bg-white" value="${t.first_seven_other || ''}" placeholder="その他の形式を入力">
+                            </div>
+                        </div>
+
+                        <!-- 火葬場への同行 -->
+                        <div class="space-y-1.5 border-t pt-3">
+                            <label class="block font-bold text-gray-600">火葬場への同行 (タップして選択・無い方はグレー)</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="setEditCrematory('有り')" id="btn-cre-有り" class="flex-1 min-w-[60px] py-1.5 font-bold rounded-lg text-xs transition shadow-sm">有り</button>
+                                <button type="button" onclick="setEditCrematory('無し')" id="btn-cre-無し" class="flex-1 min-w-[60px] py-1.5 font-bold rounded-lg text-xs transition shadow-sm">無し</button>
+                                <button type="button" onclick="setEditCrematory('不明')" id="btn-cre-不明" class="flex-1 min-w-[60px] py-1.5 font-bold rounded-lg text-xs transition shadow-sm">不明</button>
+                                <button type="button" onclick="setEditCrematory('その他')" id="btn-cre-その他" class="flex-1 min-w-[60px] py-1.5 font-bold rounded-lg text-xs transition shadow-sm">その他</button>
+                            </div>
+                            <div id="cre-other-input-area" class="hidden pt-1">
+                                <input type="text" id="edit-crematory-other" class="w-full p-2 border rounded bg-white" value="${t.crematory_accompany_other || ''}" placeholder="その他の詳細を入力">
+                            </div>
+                        </div>
+
+                        <!-- 4. 注意事項 -->
+                        <div>
+                            <label class="block font-bold text-gray-600 mb-1">注意事項</label>
+                            <textarea id="edit-notes" rows="12" class="w-full p-3 border rounded bg-white text-xs leading-relaxed focus:ring-2 focus:ring-emerald-600 focus:outline-none" placeholder="お寺独自のルール、駐車場、住職への接し方など、重要事項を多めに記入してください。">${t.notes}</textarea>
+                        </div>
+
+                        <!-- 5. 通夜の進行 -->
+                        <div class="border p-3 rounded-lg bg-slate-50 space-y-3">
+                            <h4 class="font-bold text-emerald-800 border-b pb-1">通夜の進行</h4>
+                            
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">入場時</label>
+                                <select id="edit-tsuya-entry" onchange="toggleTsuyaEntryOther()" class="w-full p-2 border rounded bg-white">
+                                    <option value="着席合掌" ${t.tsuya_entry === '着席合掌' ? 'selected' : ''}>着席合掌</option>
+                                    <option value="起立合掌" ${t.tsuya_entry === '起立合掌' ? 'selected' : ''}>起立合掌</option>
+                                    <option value="着席のまま" ${t.tsuya_entry === '着席のまま' ? 'selected' : ''}>着席のまま</option>
+                                    <option value="情報なし" ${t.tsuya_entry === '情報なし' ? 'selected' : ''}>情報なし</option>
+                                    <option value="その他" ${t.tsuya_entry === 'その他' ? 'selected' : ''}>その他</option>
+                                </select>
+                                <input type="text" id="edit-tsuya-entry-other" class="${t.tsuya_entry !== 'その他' ? 'hidden' : ''} mt-2 w-full p-2 border rounded bg-white" value="${t.tsuya_entry_other || ''}" placeholder="その他の入場方法">
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">開式の辞</label>
+                                <textarea id="edit-tsuya-opening" rows="6" class="w-full p-2.5 border rounded bg-white leading-relaxed focus:ring-1 focus:ring-emerald-600" placeholder="基本: 〇〇家菩提寺 〇〇寺 ご住職導師のもとに 執り行います">${t.tsuya_opening}</textarea>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">焼香</label>
+                                <input type="text" id="edit-tsuya-shoko" class="w-full p-2 border rounded bg-white" value="${t.tsuya_shoko}" placeholder="例: 10分程、木魚から">
+                            </div>
+
+                            <!-- 通夜：法話 -->
+                            <div class="space-y-1">
+                                <label class="block font-bold text-gray-600">法話</label>
+                                <div class="flex gap-2">
+                                    <button type="button" id="btn-tsuya-howa-yes" onclick="setEditTsuyaHowa('有り')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                    <button type="button" id="btn-tsuya-howa-no" onclick="setEditTsuyaHowa('無し')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                </div>
+                                <div id="tsuya-howa-input-area" class="hidden pt-1">
+                                    <label class="block text-gray-500 mb-0.5">法話の時間（記入欄）</label>
+                                    <input type="text" id="edit-tsuya-howa-time" class="w-full p-2 border rounded bg-white" value="${t.tsuya_howa_time || '約5分'}" placeholder="例: 約5分">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">退場</label>
+                                <select id="edit-tsuya-exit" onchange="toggleTsuyaExitOther()" class="w-full p-2 border rounded bg-white">
+                                    <option value="着席合掌" ${t.tsuya_exit === '着席合掌' ? 'selected' : ''}>着席合掌</option>
+                                    <option value="起立合掌" ${t.tsuya_exit === '起立合掌' ? 'selected' : ''}>起立合掌</option>
+                                    <option value="着席のまま" ${t.tsuya_exit === '着席のまま' ? 'selected' : ''}>着席のまま</option>
+                                    <option value="情報なし" ${t.tsuya_exit === '情報なし' ? 'selected' : ''}>情報なし</option>
+                                    <option value="その他" ${t.tsuya_exit === 'その他' ? 'selected' : ''}>その他</option>
+                                </select>
+                                <input type="text" id="edit-tsuya-exit-other" class="${t.tsuya_exit !== 'その他' ? 'hidden' : ''} mt-2 w-full p-2 border rounded bg-white" value="${t.tsuya_exit_other || ''}" placeholder="その他の退場方法">
+                            </div>
+
+                            <!-- 通夜：全体の読経時間 -->
+                            <div class="pt-2 border-t mt-2">
+                                <label class="block font-bold text-gray-600 mb-1">全体の読経時間</label>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-gray-500 font-bold text-xs">約</span>
+                                    <input type="text" id="edit-tsuya-chant-time" class="w-20 p-2 border rounded bg-white text-center font-bold text-sm focus:ring-1 focus:ring-emerald-600 focus:outline-none" value="${t.tsuya_chant_time || ''}" placeholder="30">
+                                    <span class="text-gray-500 font-bold text-xs">分</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. 告別式の進行 -->
+                        <div class="border p-3 rounded-lg bg-slate-50 space-y-3">
+                            <h4 class="font-bold text-emerald-800 border-b pb-1">告別式の進行</h4>
+                            
+                            <!-- 告別式：入場時 -->
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">入場時</label>
+                                <select id="edit-kokubetsu-entry" onchange="toggleKokuEntryOther()" class="w-full p-2 border rounded bg-white">
+                                    <option value="着席合掌" ${t.kokubetsu_entry === '着席合掌' ? 'selected' : ''}>着席合掌</option>
+                                    <option value="起立合掌" ${t.kokubetsu_entry === '起立合掌' ? 'selected' : ''}>起立合掌</option>
+                                    <option value="着席のまま" ${t.kokubetsu_entry === '着席のまま' ? 'selected' : ''}>着席のまま</option>
+                                    <option value="情報なし" ${t.kokubetsu_entry === '情報なし' ? 'selected' : ''}>情報なし</option>
+                                    <option value="その他" ${t.kokubetsu_entry === 'その他' ? 'selected' : ''}>その他</option>
+                                </select>
+                                <input type="text" id="edit-kokubetsu-entry-other" class="${t.kokubetsu_entry !== 'その他' ? 'hidden' : ''} mt-2 w-full p-2 border rounded bg-white" value="${t.kokubetsu_entry_other || ''}" placeholder="その他の入場方法">
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">開式の辞</label>
+                                <textarea id="edit-kokubetsu-opening" rows="6" class="w-full p-2.5 border rounded bg-white leading-relaxed focus:ring-1 focus:ring-emerald-600" placeholder="基本: 〇〇家菩提寺 〇〇寺 ご住職導師のもとに 執り行います">${t.kokubetsu_opening}</textarea>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">引導</label>
+                                <input type="text" id="edit-kokubetsu-indo" class="w-full p-2 border rounded bg-white" value="${t.kokubetsu_indo}" placeholder="例: 10分程、立って作法">
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">焼香</label>
+                                <input type="text" id="edit-kokubetsu-shoko" class="w-full p-2 border rounded bg-white" value="${t.kokubetsu_shoko}" placeholder="例: 10分程、木魚から">
+                            </div>
+
+                            <!-- 告別式：法話 -->
+                            <div class="space-y-1">
+                                <label class="block font-bold text-gray-600">法話</label>
+                                <div class="flex gap-2">
+                                    <button type="button" id="btn-kokubetsu-howa-yes" onclick="setEditKokubetsuHowa('有り')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                    <button type="button" id="btn-kokubetsu-howa-no" onclick="setEditKokubetsuHowa('無し')" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm"></button>
+                                </div>
+                                <div id="kokubetsu-howa-input-area" class="hidden pt-1">
+                                    <label class="block text-gray-500 mb-0.5">法話の時間（記入欄）</label>
+                                    <input type="text" id="edit-kokubetsu-howa-time" class="w-full p-2 border rounded bg-white" value="${t.kokubetsu_howa_time || '約5分'}" placeholder="例: 約5分">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1">退場</label>
+                                <select id="edit-kokubetsu-exit" onchange="toggleKokuExitOther()" class="w-full p-2 border rounded bg-white">
+                                    <option value="着席合掌" ${t.kokubetsu_exit === '着席合掌' ? 'selected' : ''}>着席合掌</option>
+                                    <option value="起立合掌" ${t.kokubetsu_exit === '起立合掌' ? 'selected' : ''}>起立合掌</option>
+                                    <option value="着席のまま" ${t.kokubetsu_exit === '着席のまま' ? 'selected' : ''}>着席のまま</option>
+                                    <option value="情報なし" ${t.kokubetsu_exit === '情報なし' ? 'selected' : ''}>情報なし</option>
+                                    <option value="その他" ${t.kokubetsu_exit === 'その他' ? 'selected' : ''}>その他</option>
+                                </select>
+                                <input type="text" id="edit-kokubetsu-exit-other" class="${t.kokubetsu_exit !== 'その他' ? 'hidden' : ''} mt-2 w-full p-2 border rounded bg-white" value="${t.kokubetsu_exit_other || ''}" placeholder="その他の退場方法">
+                            </div>
+
+                            <!-- 出棺先導 -->
+                            <div class="space-y-1 pt-1 border-t">
+                                <label class="block font-bold text-gray-600">出棺先導 (タップして選択・無い方はグレー)</label>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="setEditSendo('有り')" id="btn-sendo-有り" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm">有り</button>
+                                    <button type="button" onclick="setEditSendo('無し')" id="btn-sendo-無し" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm">無し</button>
+                                    <button type="button" onclick="setEditSendo('不明')" id="btn-sendo-不明" class="flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm">不明</button>
+                                </div>
+                            </div>
+
+                            <!-- 告別式：全体の読経時間 -->
+                            <div class="pt-2 border-t mt-2">
+                                <label class="block font-bold text-gray-600 mb-1">全体の読経時間</label>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-gray-500 font-bold text-xs">約</span>
+                                    <input type="text" id="edit-kokubetsu-chant-time" class="w-20 p-2 border rounded bg-white text-center font-bold text-sm focus:ring-1 focus:ring-emerald-600 focus:outline-none" value="${t.kokubetsu_chant_time || ''}" placeholder="40">
+                                    <span class="text-gray-500 font-bold text-xs">分</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 🗑 削除要望ボタン -->
+                        ${deleteButtonHTML}
+
+                        <!-- 保存ボタン -->
+                        <button onclick="saveTempleData(${t.id !== "" ? t.id : 'null'})" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white p-3 rounded-lg font-bold transition shadow-md flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-floppy-disk"></i>変更内容を保存する
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            updateEditWebUI();
+            updateEditPickupUI();
+            updateEditHowaUI();
+            updateEditCrematoryUI();
+            updateEditSendoUI();
+            renderPreviewImages();
+            
+            onSectSelectChange(true);
+        }
+
+        // --- 宗派プルダウン変更時の連動制御 ---
+        function onSectSelectChange(isInit = false) {
+            const select = document.getElementById('edit-sect-select');
+            const kanaInput = document.getElementById('edit-sect-kana');
+            const subInputArea = document.getElementById('sect-sub-input-area');
+            const subLabel = document.getElementById('sect-sub-label');
+            const subInput = document.getElementById('edit-sect-sub-input');
+
+            const val = select.value;
+            if (!val) {
+                if (!isInit) {
+                    kanaInput.value = "";
+                    subInputArea.classList.add('hidden');
+                }
+                return;
+            }
+
+            const matched = sectList.find(s => s.name === val);
+            if (matched) {
+                kanaInput.value = matched.kana;
+
+                if (matched.has_sub) {
+                    subInputArea.classList.remove('hidden');
+                    subLabel.innerText = `「${matched.name}」の詳細・系統をご記入ください`;
+                    subInput.placeholder = matched.placeholder || "詳細を入力";
+                } else {
+                    subInputArea.classList.add('hidden');
+                    if (!isInit) subInput.value = "";
+                }
+            }
+        }
+
+        // --- 郵便番号から住所を自動検索 ---
+        function searchAddressByZip() {
+            let zip = document.getElementById('edit-postal').value.trim();
+            zip = zip.replace(/-/g, '');
+            if (zip.length !== 7 || isNaN(zip)) {
+                alert('郵便番号は半角数字7桁（ハイフン無し）で入力してください。');
+                return;
+            }
+            fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 200 && data.results) {
+                        const res = data.results[0];
+                        const fullAddress = res.address1 + res.address2 + res.address3;
+                        document.getElementById('edit-address').value = fullAddress;
+                    } else {
+                        alert('該当する住所が見つかりませんでした。郵便番号をもう一度ご確認ください。');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching address:', err);
+                    alert('住所自動取得の通信中にエラーが発生しました。\nインターネット接続状況をご確認ください。');
+                });
+        }
+
+        // --- 削除、および削除依頼 ---
+        function requestOrDeleteTemple(id) {
+            if (!confirm('本当にこの寺院の情報を削除しますか？')) {
+                return;
+            }
+            if (currentUserRole === 'admin') {
+                temples = temples.filter(item => item.id !== id);
+                saveToStorage();
+                alert('この寺院の情報を完全に削除しました。');
+                showListScreen();
+            } else {
+                const index = temples.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    temples[index].delete_requested = true;
+                    temples[index].delete_request_by = currentUser;
+                    temples[index].delete_request_time = getFormattedNow();
+                }
+                saveToStorage();
+                alert('管理者にて削除します（管理者に削除依頼を送信しました）。');
+                showDetailScreen(id);
+            }
+        }
+
+        // --- ウェブサイト ---
+        function setEditWebHas(hasValue) {
+            edit_has_website = hasValue;
+            updateEditWebUI();
+        }
+
+        function updateEditWebUI() {
+            const btnYes = document.getElementById('btn-web-yes');
+            const btnNo = document.getElementById('btn-web-no');
+            const urlInputArea = document.getElementById('web-url-input-area');
+            const activeClass = "bg-emerald-700 text-white";
+            const inactiveClass = "bg-gray-200 text-gray-400";
+
+            if (edit_has_website === '有り') {
+                btnYes.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnYes.innerText = "有り";
+                btnNo.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnNo.innerText = "無し";
+                urlInputArea.classList.remove('hidden');
+            } else {
+                btnYes.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnYes.innerText = "有り";
+                btnNo.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnNo.innerText = "無し";
+                urlInputArea.classList.add('hidden');
+            }
+        }
+
+        // --- 送迎 ---
+        function setEditPickupHas(hasValue) {
+            edit_has_pickup = hasValue;
+            if (hasValue === '有り') {
+                edit_pickup_details = ["ハイヤー"];
+            } else {
+                edit_pickup_details = ["自家用車"];
+            }
+            updateEditPickupUI();
+        }
+
+        function toggleEditPickupDetail(detailValue) {
+            const idx = edit_pickup_details.indexOf(detailValue);
+            if (idx > -1) {
+                if (edit_pickup_details.length > 1) {
+                    edit_pickup_details.splice(idx, 1);
+                }
+            } else {
+                edit_pickup_details.push(detailValue);
+            }
+            updateEditPickupUI();
+        }
+
+        function updateEditPickupUI() {
+            const btnYes = document.getElementById('btn-pickup-yes');
+            const btnNo = document.getElementById('btn-pickup-no');
+            const choicesYes = document.getElementById('pickup-choices-yes');
+            const choicesNo = document.getElementById('pickup-choices-no');
+            const otherInputArea = document.getElementById('pickup-other-input-area');
+            const activeClass = "bg-emerald-700 text-white";
+            const inactiveClass = "bg-gray-200 text-gray-400";
+
+            if (edit_has_pickup === '有り') {
+                btnYes.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnYes.innerText = "有り";
+                btnNo.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnNo.innerText = "無し";
+                choicesYes.classList.remove('hidden');
+                choicesNo.classList.add('hidden');
+            } else {
+                btnYes.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnYes.innerText = "有り";
+                btnNo.className = `flex-1 py-2 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnNo.innerText = "無し";
+                choicesYes.classList.add('hidden');
+                choicesNo.classList.remove('hidden');
+            }
+
+            const yesOpts = ["ハイヤー", "タクシー", "どちらでも可", "不明", "その他"];
+            yesOpts.forEach(opt => {
+                const el = document.getElementById(opt === 'その他' ? 'opt-その他-yes' : `opt-${opt}`);
+                if (!el) return;
+                const isSelected = edit_pickup_details.includes(opt);
+                el.className = `py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition ${isSelected ? activeClass : inactiveClass}`;
+                el.innerText = opt;
+            });
+
+            const noOpts = ["自家用車", "電車その他", "その他"];
+            noOpts.forEach(opt => {
+                const el = document.getElementById(opt === 'その他' ? 'opt-その他-no' : `opt-${opt}`);
+                if (!el) return;
+                const isSelected = edit_pickup_details.includes(opt);
+                el.className = `py-1.5 px-3 rounded-lg text-xs font-semibold shadow-sm transition ${isSelected ? activeClass : inactiveClass}`;
+                el.innerText = opt;
+            });
+
+            if (edit_pickup_details.includes('その他')) {
+                otherInputArea.classList.remove('hidden');
+            } else {
+                otherInputArea.classList.add('hidden');
+            }
+        }
+
+        // --- 火葬同行 ---
+        function setEditCrematory(val) {
+            edit_crematory_accompany = val;
+            updateEditCrematoryUI();
+        }
+
+        function updateEditCrematoryUI() {
+            const opts = ["有り", "無し", "不明", "その他"];
+            const activeClass = "bg-emerald-700 text-white shadow-sm font-bold";
+            const inactiveClass = "bg-gray-200 text-gray-400 font-bold";
+            const otherArea = document.getElementById('cre-other-input-area');
+
+            opts.forEach(opt => {
+                const btn = document.getElementById(`btn-cre-${opt}`);
+                if (btn) {
+                    btn.className = `flex-1 min-w-[60px] py-1.5 rounded-lg text-xs transition ${edit_crematory_accompany === opt ? activeClass : inactiveClass}`;
+                }
+            });
+
+            if (edit_crematory_accompany === "その他") {
+                otherArea.classList.remove('hidden');
+            } else {
+                otherArea.classList.add('hidden');
+            }
+        }
+
+        // --- 出棺先導 ---
+        function setEditSendo(val) {
+            edit_kokubetsu_shukkan_sendo = val;
+            updateEditSendoUI();
+        }
+
+        function updateEditSendoUI() {
+            const opts = ["有り", "無し", "不明"];
+            const activeClass = "bg-emerald-700 text-white shadow-sm font-bold";
+            const inactiveClass = "bg-gray-200 text-gray-400 font-bold";
+
+            opts.forEach(opt => {
+                const btn = document.getElementById(`btn-sendo-${opt}`);
+                if (btn) {
+                    btn.className = `flex-1 py-1.5 rounded-lg text-xs transition ${edit_kokubetsu_shukkan_sendo === opt ? activeClass : inactiveClass}`;
+                }
+            });
+        }
+
+        // --- 法話 ---
+        function setEditTsuyaHowa(hasHowa) {
+            edit_tsuya_howa = hasHowa;
+            updateEditHowaUI();
+        }
+
+        function setEditKokubetsuHowa(hasHowa) {
+            edit_kokubetsu_howa = hasHowa;
+            updateEditHowaUI();
+        }
+
+        function updateEditHowaUI() {
+            const activeClass = "bg-emerald-700 text-white";
+            const inactiveClass = "bg-gray-200 text-gray-400";
+
+            const btnTsuyaYes = document.getElementById('btn-tsuya-howa-yes');
+            const btnTsuyaNo = document.getElementById('btn-tsuya-howa-no');
+            const tsuyaArea = document.getElementById('tsuya-howa-input-area');
+            if (edit_tsuya_howa === '有り') {
+                btnTsuyaYes.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnTsuyaYes.innerText = "有り";
+                btnTsuyaNo.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnTsuyaNo.innerText = "無し";
+                tsuyaArea.classList.remove('hidden');
+            } else {
+                btnTsuyaYes.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnTsuyaYes.innerText = "有り";
+                btnTsuyaNo.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnTsuyaNo.innerText = "無し";
+                tsuyaArea.classList.add('hidden');
+            }
+
+            const btnKokuYes = document.getElementById('btn-kokubetsu-howa-yes');
+            const btnKokuNo = document.getElementById('btn-kokubetsu-howa-no');
+            const kokuArea = document.getElementById('kokubetsu-howa-input-area');
+            if (edit_kokubetsu_howa === '有り') {
+                btnKokuYes.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnKokuYes.innerText = "有り";
+                btnKokuNo.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnKokuNo.innerText = "無し";
+                kokuArea.classList.remove('hidden');
+            } else {
+                btnKokuYes.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${inactiveClass}`;
+                btnKokuYes.innerText = "有り";
+                btnKokuNo.className = `flex-1 py-1.5 font-bold rounded-lg text-xs transition shadow-sm ${activeClass}`;
+                btnKokuNo.innerText = "無し";
+                kokuArea.classList.add('hidden');
+            }
+        }
+
+        // --- 画像処理 ---
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            Array.from(files).forEach(file => {
+                if (tempImages.length >= 10) return;
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 500;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                        tempImages.push(compressedBase64);
+                        renderPreviewImages();
+                    };
+                };
+            });
+            event.target.value = '';
+        }
+
+        function renderPreviewImages() {
+            const previewContainer = document.getElementById('image-previews');
+            const counter = document.getElementById('img-counter');
+            counter.innerText = `現在: ${tempImages.length}/10枚`;
+            previewContainer.innerHTML = '';
+            tempImages.forEach((imgSrc, index) => {
+                previewContainer.innerHTML += `
+                    <div class="relative w-16 h-16">
+                        <img src="${imgSrc}" class="w-full h-full object-cover rounded border shadow-sm">
+                        <button type="button" onclick="removeTempImage(${index})" class="absolute -top-1.5 -right-1.5 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px] hover:bg-red-700 transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function removeTempImage(index) {
+            tempImages.splice(index, 1);
+            renderPreviewImages();
+        }
+
+        function openImageModal(imgSrc) {
+            document.getElementById('modal-img').src = imgSrc;
+            document.getElementById('image-modal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+
+        function toggleDeliveryItems(show) {
+            const area = document.getElementById('delivery-items-area');
+            if (show) area.classList.remove('hidden');
+            else area.classList.add('hidden');
+        }
+
+        function toggleFirstSevenOther() {
+            const val = document.getElementById('edit-first-seven').value;
+            const area = document.getElementById('first-seven-other-area');
+            if (val === 'その他') area.classList.remove('hidden');
+            else area.classList.add('hidden');
+        }
+
+        function toggleTsuyaEntryOther() {
+            const val = document.getElementById('edit-tsuya-entry').value;
+            const input = document.getElementById('edit-tsuya-entry-other');
+            if (val === 'その他') input.classList.remove('hidden');
+            else input.classList.add('hidden');
+        }
+
+        function toggleTsuyaExitOther() {
+            const val = document.getElementById('edit-tsuya-exit').value;
+            const input = document.getElementById('edit-tsuya-exit-other');
+            if (val === 'その他') input.classList.remove('hidden');
+            else input.classList.add('hidden');
+        }
+
+        function toggleKokuEntryOther() {
+            const val = document.getElementById('edit-kokubetsu-entry').value;
+            const input = document.getElementById('edit-kokubetsu-entry-other');
+            if (val === 'その他') input.classList.remove('hidden');
+            else input.classList.add('hidden');
+        }
+
+        function toggleKokuExitOther() {
+            const val = document.getElementById('edit-kokubetsu-exit').value;
+            const input = document.getElementById('edit-kokubetsu-exit-other');
+            if (val === 'その他') input.classList.remove('hidden');
+            else input.classList.add('hidden');
+        }
+
+        // --- 保存 ---
+        function saveTempleData(id) {
+            const sectSelect = document.getElementById('edit-sect-select').value;
+            const sectSubInput = document.getElementById('edit-sect-sub-input').value.trim();
+            const sect_kana = document.getElementById('edit-sect-kana').value;
+
+            if (!sectSelect) {
+                alert("宗派の選択は必須です。");
+                return;
+            }
+
+            let sect = sectSelect;
+            const matched = sectList.find(s => s.name === sectSelect);
+            if (matched && matched.has_sub && sectSubInput) {
+                sect = `${sectSelect}（${sectSubInput}）`;
+            }
+
+            const name = document.getElementById('edit-name').value;
+            const kana = document.getElementById('edit-kana').value;
+            const postal_code = document.getElementById('edit-postal').value;
+            const address = document.getElementById('edit-address').value;
+            const phone = document.getElementById('edit-phone').value;
+            const fax = document.getElementById('edit-fax').value;
+            const website_url = document.getElementById('edit-url') ? document.getElementById('edit-url').value : "";
+
+            if (!name) {
+                alert("寺院名は必須入力です。");
+                return;
+            }
+
+            const has_delivery = document.querySelector('input[name="edit-delivery"]:checked').value;
+            const checkedItems = [];
+            const checkboxes = document.querySelectorAll('input[name="edit-items"]:checked');
+            checkboxes.forEach(cb => checkedItems.push(cb.value));
+            const delivery_other = document.getElementById('edit-delivery-other').value;
+            const pickup_other = document.getElementById('edit-pickup-other').value;
+
+            const first_seven_days = document.getElementById('edit-first-seven').value;
+            const first_seven_other = document.getElementById('edit-first-seven-other').value;
+            const crematory_other = document.getElementById('edit-crematory-other').value;
+            const notes = document.getElementById('edit-notes').value;
+
+            const tsuya_entry = document.getElementById('edit-tsuya-entry').value;
+            const tsuya_entry_other = document.getElementById('edit-tsuya-entry-other').value;
+            const tsuya_opening = document.getElementById('edit-tsuya-opening').value;
+            const tsuya_shoko = document.getElementById('edit-tsuya-shoko').value;
+            const tsuya_howa_time = document.getElementById('edit-tsuya-howa-time').value;
+            const tsuya_exit = document.getElementById('edit-tsuya-exit').value;
+            const tsuya_exit_other = document.getElementById('edit-tsuya-exit-other').value;
+            const tsuya_chant_time = document.getElementById('edit-tsuya-chant-time').value.trim();
+
+            const kokubetsu_entry = document.getElementById('edit-kokubetsu-entry').value;
+            const kokubetsu_entry_other = document.getElementById('edit-kokubetsu-entry-other').value;
+            const kokubetsu_opening = document.getElementById('edit-kokubetsu-opening').value;
+            const kokubetsu_indo = document.getElementById('edit-kokubetsu-indo').value;
+            const kokubetsu_shoko = document.getElementById('edit-kokubetsu-shoko').value;
+            const kokubetsu_howa_time = document.getElementById('edit-kokubetsu-howa-time').value;
+            const kokubetsu_exit = document.getElementById('edit-kokubetsu-exit').value;
+            const kokubetsu_exit_other = document.getElementById('edit-kokubetsu-exit-other').value;
+            const kokubetsu_chant_time = document.getElementById('edit-kokubetsu-chant-time').value.trim();
+
+            if (!confirm('入力内容を保存します。よろしいですか？')) {
+                return;
+            }
+
+            const timestamp = getFormattedNow();
+            let targetId = id;
+
+            if (isEditMode && id !== null) {
+                const index = temples.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    temples[index] = {
+                        id, name, kana, sect, sect_kana, postal_code, address, phone, fax,
+                        has_website: edit_has_website,
+                        website_url: edit_has_website === '有り' ? website_url : "",
+                        images: tempImages,
+                        has_delivery, delivery_items: has_delivery === '有り' ? checkedItems : [], delivery_other: has_delivery === '有り' ? delivery_other : '',
+                        has_pickup: edit_has_pickup, 
+                        pickup_details: edit_pickup_details,
+                        pickup_other: edit_pickup_details.includes('その他') ? pickup_other : '',
+                        first_seven_days, first_seven_other: first_seven_days === 'その他' ? first_seven_other : '',
+                        crematory_accompany: edit_crematory_accompany,
+                        crematory_accompany_other: edit_crematory_accompany === 'その他' ? crematory_other : '',
+                        notes,
+                        tsuya_entry, tsuya_entry_other: tsuya_entry === 'その他' ? tsuya_entry_other : '',
+                        tsuya_opening, tsuya_shoko, 
+                        tsuya_howa: edit_tsuya_howa,
+                        tsuya_howa_time: edit_tsuya_howa === '有り' ? tsuya_howa_time : '',
+                        tsuya_exit, tsuya_exit_other: tsuya_exit === 'その他' ? tsuya_exit_other : '',
+                        tsuya_chant_time,
+                        kokubetsu_entry, kokubetsu_entry_other: kokubetsu_entry === 'その他' ? kokubetsu_entry_other : '',
+                        kokubetsu_opening, kokubetsu_indo, kokubetsu_shoko, 
+                        kokubetsu_howa: edit_kokubetsu_howa,
+                        kokubetsu_howa_time: edit_kokubetsu_howa === '有り' ? kokubetsu_howa_time : '',
+                        kokubetsu_exit, kokubetsu_exit_other: kokubetsu_exit === 'その他' ? kokubetsu_exit_other : '',
+                        kokubetsu_shukkan_sendo: edit_kokubetsu_shukkan_sendo,
+                        kokubetsu_chant_time,
+                        last_updated: timestamp,
+                        delete_requested: temples[index].delete_requested || false,
+                        delete_request_by: temples[index].delete_request_by || "",
+                        delete_request_time: temples[index].delete_request_time || ""
+                    };
+                }
+            } else {
+                const maxId = temples.length > 0 ? Math.max(...temples.map(item => item.id)) : 0;
+                targetId = maxId + 1;
+                const newTemple = {
+                    id: targetId, name, kana, sect, sect_kana, postal_code, address, phone, fax,
+                    has_website: edit_has_website,
+                    website_url: edit_has_website === '有り' ? website_url : "",
+                    images: tempImages,
+                    has_delivery, delivery_items: has_delivery === '有り' ? checkedItems : [], delivery_other: has_delivery === '有り' ? delivery_other : '',
+                    has_pickup: edit_has_pickup, 
+                    pickup_details: edit_pickup_details,
+                    pickup_other: edit_pickup_details.includes('その他') ? pickup_other : '',
+                    first_seven_days, first_seven_other: first_seven_days === 'その他' ? first_seven_other : '',
+                    crematory_accompany: edit_crematory_accompany,
+                    crematory_accompany_other: edit_crematory_accompany === 'その他' ? crematory_other : '',
+                    notes,
+                    tsuya_entry, tsuya_entry_other: tsuya_entry === 'その他' ? tsuya_entry_other : '',
+                    tsuya_opening, tsuya_shoko, 
+                    tsuya_howa: edit_tsuya_howa,
+                    tsuya_howa_time: edit_tsuya_howa === '有り' ? tsuya_howa_time : '',
+                    tsuya_exit, tsuya_exit_other: tsuya_exit === 'その他' ? tsuya_exit_other : '',
+                    tsuya_chant_time,
+                    kokubetsu_entry, kokubetsu_entry_other: kokubetsu_entry === 'その他' ? kokubetsu_entry_other : '',
+                    kokubetsu_opening, kokubetsu_indo, kokubetsu_shoko, 
+                    kokubetsu_howa: edit_kokubetsu_howa,
+                    kokubetsu_howa_time: edit_kokubetsu_howa === '有り' ? kokubetsu_howa_time : '',
+                    kokubetsu_exit, kokubetsu_exit_other: kokubetsu_exit === 'strong' ? kokubetsu_exit_other : '',
+                    kokubetsu_shukkan_sendo: edit_kokubetsu_shukkan_sendo,
+                    kokubetsu_chant_time,
+                    last_updated: timestamp,
+                    delete_requested: false,
+                    delete_request_by: "",
+                    delete_request_time: ""
+                };
+                temples.push(newTemple);
+            }
+
+            saveToStorage();
+            alert('保存を完了しました。');
+            showDetailScreen(targetId);
+        }
+
+        // --- 5. 管理者専用画面 ---
+        function showAdminMenuScreen() {
+            if (currentUserRole !== 'admin') {
+                alert('この画面は管理者専用です。');
+                showListScreen();
+                return;
+            }
+            const body = document.getElementById('app-body');
+            
+            // ① スタッフ一覧
+            let staffListHTML = '';
+            if (staffs.length === 0) {
+                staffListHTML = `<div class="p-3 text-center text-gray-400 text-xs">登録されているスタッフはいません。</div>`;
+            } else {
+                staffListHTML = `<ul class="divide-y text-xs border rounded-lg overflow-hidden bg-gray-50">`;
+                staffs.forEach(st => {
+                    staffListHTML += `
+                        <li class="p-3 flex justify-between items-center bg-white">
+                            <span class="font-mono font-semibold text-gray-700">${st}</span>
+                            <button onclick="deleteStaff('${st}')" class="text-red-600 hover:text-red-800 p-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </li>
+                    `;
+                });
+                staffListHTML += `</ul>`;
+            }
+
+            // ② 削除依頼リスト
+            const requestedTemples = temples.filter(item => item.delete_requested);
+            let deleteRequestsHTML = '';
+            
+            if (requestedTemples.length === 0) {
+                deleteRequestsHTML = `
+                    <div class="p-4 border rounded-lg bg-gray-50 text-gray-400 text-center">
+                        現在、届いている削除依頼はありません。
+                    </div>
+                `;
+            } else {
+                deleteRequestsHTML = `
+                    <div class="space-y-3">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-900 font-bold text-xs flex items-center gap-1.5 animate-pulse">
+                            <i class="fa-solid fa-triangle-exclamation text-[14px]"></i>
+                            <span>削除依頼が来ています（${requestedTemples.length}件）</span>
+                        </div>
+                        
+                        <div class="space-y-2">
+                            ${requestedTemples.map(rt => `
+                                <div class="bg-white border border-gray-200 rounded-lg p-3 space-y-2 shadow-sm text-xs">
+                                    <div class="flex justify-between items-start border-b pb-1.5">
+                                        <div>
+                                            <span class="text-[10px] text-gray-400 block">${rt.sect}</span>
+                                            <span class="font-bold text-gray-800 text-sm">${rt.name}</span>
+                                        </div>
+                                        <span class="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded">依頼中</span>
+                                    </div>
+                                    <p class="text-gray-500 text-[10px]">・依頼スタッフ: <span class="font-bold text-gray-700">${rt.delete_request_by}</span></p>
+                                    <p class="text-gray-500 text-[10px] border-b pb-1.5">・依頼日時: <span class="font-bold text-gray-700">${rt.delete_request_time}</span></p>
+                                    
+                                    <div class="flex gap-2 pt-1">
+                                        <button onclick="approveDeleteTemple(${rt.id}, '${rt.name}')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded shadow-sm text-[11px] transition">
+                                            許可 (完全に削除)
+                                        </button>
+                                        <button onclick="rejectDeleteRequest(${rt.id})" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 border font-bold p-2 rounded text-[11px] transition">
+                                            却下 (依頼の取消)
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            body.innerHTML = `
+                <button onclick="showListScreen()" class="mb-4 text-emerald-800 font-bold flex items-center gap-1 hover:underline text-sm">
+                    <i class="fa-solid fa-arrow-left"></i> 寺院一覧に戻る
+                </button>
+
+                <div class="bg-white rounded-lg border p-4 space-y-5 text-xs shadow-sm">
+                    <h3 class="text-sm font-bold text-gray-700 border-b pb-2 flex items-center gap-1">
+                        <i class="fa-solid fa-user-gear text-slate-700"></i>管理者画面（スタッフ＆削除管理）
+                    </h3>
+
+                    <!-- 削除依頼一覧セクション -->
+                    <div class="space-y-2 border-b pb-5">
+                        <span class="block font-bold text-gray-700"><i class="fa-solid fa-trash-can mr-1"></i>スタッフからの削除依頼管理</span>
+                        ${deleteRequestsHTML}
+                    </div>
+
+                    <!-- スタッフ新規追加 -->
+                    <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 space-y-3">
+                        <span class="block font-bold text-emerald-800"><i class="fa-solid fa-user-plus mr-1"></i>スタッフアカウントの新規登録</span>
+                        
+                        <div>
+                            <label class="block text-gray-600 font-bold mb-1">新規スタッフID（苗字をアルファベットで入力）</label>
+                            <div class="flex items-center">
+                                <span class="bg-gray-200 border-t border-b border-l p-2.5 rounded-l font-mono text-gray-600 font-bold">saitama-</span>
+                                <input type="text" id="new-staff-suffix" class="flex-grow p-2.5 border rounded-r focus:outline-emerald-600 font-mono" placeholder="例: saito">
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-1">※自動的に「saitama-苗字」の形式でIDが登録されます。</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-500 font-bold">初期パスワード（全員共通）</label>
+                            <input type="text" disabled class="w-full p-2.5 border rounded bg-gray-100 font-mono text-gray-500" value="sakado0470">
+                        </div>
+
+                        <button onclick="addNewStaff()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white p-2.5 rounded-lg font-bold transition shadow-sm flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-user-check"></i>スタッフIDを登録する
+                        </button>
+                    </div>
+
+                    <!-- スタッフ一覧 -->
+                    <div class="space-y-2 pt-2">
+                        <span class="block font-bold text-gray-600"><i class="fa-solid fa-users mr-1"></i>登録中のスタッフ一覧 (現在 ${staffs.length}名)</span>
+                        ${staffListHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 削除の許可
+        function approveDeleteTemple(id, name) {
+            if (!confirm(`本当に「${name}」を【完全に削除】しますか？\nこの操作は元に戻せません。`)) {
+                return;
+            }
+            temples = temples.filter(item => item.id !== id);
+            saveToStorage();
+            alert(`「${name}」のデータを完全に削除しました。`);
+            showAdminMenuScreen();
+        }
+
+        // 削除の却下
+        function rejectDeleteRequest(id) {
+            const index = temples.findIndex(item => item.id === id);
+            if (index !== -1) {
+                temples[index].delete_requested = false;
+                temples[index].delete_request_by = "";
+                temples[index].delete_request_time = "";
+            }
+            saveToStorage();
+            alert('削除依頼を却下（取り消し）しました。お寺データは維持されます。');
+            showAdminMenuScreen();
+        }
+
+        // スタッフ追加
+        function addNewStaff() {
+            const suffix = document.getElementById('new-staff-suffix').value.trim().toLowerCase();
+            if (!suffix) {
+                alert("アルファベットでスタッフの苗字を入力してください。");
+                return;
+            }
+            if (!/^[a-z]+$/.test(suffix)) {
+                alert("苗字は半角アルファベット（小文字のみ）で入力してください。");
+                return;
+            }
+            const fullId = `saitama-${suffix}`;
+            if (staffs.includes(fullId)) {
+                alert(`スタッフID「${fullId}」はすでに登録されています。`);
+                return;
+            }
+            if (fullId === 'saitama-arikawa') {
+                alert("管理者と同じIDは登録できません。");
+                return;
+            }
+            staffs.push(fullId);
+            saveStaffsToStorage();
+            alert(`スタッフ「${fullId}」を登録しました。\nログインパスワードは一律「sakado0470」です。`);
+            showAdminMenuScreen();
+        }
+
+        function deleteStaff(staffId) {
+            if (!confirm(`スタッフ「${staffId}」のアクセス権を削除します。\nよろしいですか？`)) {
+                return;
+            }
+            staffs = staffs.filter(st => st !== staffId);
+            saveStaffsToStorage();
+            alert(`スタッフ「${staffId}」を削除しました。`);
+            showAdminMenuScreen();
+        }
+    </script>
+</body>
+</html>
+
+3. デモでのご確認・動作テスト方法
+
+1.  上記のコードをコピーし、メモ帳を起動して貼り付け、名前を index.html にして上書き保存（またはGitHubへアップロード）してください。
+2.  お寺一覧からお好きなお寺（例：観音寺）をタップして詳細画面を開きます。
+3.  詳細画面の上部に 「基本・画像」「届け・送迎」「式進行」「注意事項」 の4つのタブ（横並びのボタン）が出現します。
+4.  それぞれのタブをタップすると、画面が切り替わります。スクロール量が大幅に削減され、画面を上下に何度も往復することなく目的の情報（式進行や画像など）にすぐアクセスできることをお確かめください。
+ご指摘の通り、スマートフォンの画面はPCと比べて横幅が狭く縦に長いため、これまでの「すべての情報を1つの画面に上から下まで並べる」設計では、**「目的の情報（例えば式進行や、参考画像）にたどり着くために、親指で何度も何度も下へスクロールしなければならない」**という実務上の大きな負担が生じていました。
+
+この使いにくさを劇的に改善するため、スマートフォン向けUIのベストプラクティスである 「タブ切り替え機能（Tabs）」 を詳細画面に導入しました。
+
+これにより、情報がすっきりと整理され、画面をほとんどスクロールすることなく、1タップで必要な情報へダイレクトにアクセスできる ようになります。
+
+1. スマホ特有の「縦長で見にくい」を解消する新デザイン
+
+詳細画面の上部に、押しやすい 4つの切り替えタブ を設置しました。
+
+1.  「基本・参考画像」タブ:
+      - 寺院名、宗派、住所、地図、電話、FAX、公式HP、参考画像（10枚）
+2.  「届け・送迎」タブ:
+      - 書き物届け（有り/無しと詳細）、送迎（有り/無しと詳細）、初七日法要、火葬場への同行
+3.  「式進行」タブ:
+      - 【通夜進行】（入場、開式の辞、焼香、法話、退場、全体の読経時間）
+      - 【告別式進行】（入場、開式の辞、引導、焼香、法話、退場、出棺先導、全体の読経時間）
+4.  「注意事項」タブ:
+      - お寺独自の重要な注意事項（広くて読みやすい専用のメモスペース）
+5.  「管理者に伝える」連絡エリア:
+      - タブの切り替えに関わらず、画面の最下部（または注意事項タブ内）に綺麗に配置し、LINEやメールでの報告をすぐに行えるようにしました。
+
+2. 劇的改善版：周辺寺院詳細アプリ（Ver. 19.0）
+
+以下のコードをコピーしてメモ帳に貼り付け、名前を index.html に変更して上書き保存（またはGitHubへアップロード）してください。
 
 <!DOCTYPE html>
 <html lang="ja">
